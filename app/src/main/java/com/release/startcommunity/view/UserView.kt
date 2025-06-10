@@ -2,6 +2,7 @@ package com.release.startcommunity.view
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -24,7 +25,7 @@ import androidx.compose.ui.unit.sp
 
 
 @Composable
-fun LoginScreen(onLogin: (String, String) -> Unit) {
+fun LoginScreen(onLogin: (String, String) -> Unit, onRegister: (String, String) -> Unit) {
     var username by remember { mutableStateOf("") }
 
     var password by remember { mutableStateOf("") }
@@ -48,8 +49,14 @@ fun LoginScreen(onLogin: (String, String) -> Unit) {
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
         )
         Spacer(Modifier.height(16.dp))
-        Button(onClick = { onLogin(username, password) }) {
-            Text("登录")
+        Row {
+            Button(onClick = { onLogin(username, password) }) {
+                Text("登录")
+            }
+
+            Button(onClick = { onRegister(username, password) }) {
+                Text("注册")
+            }
         }
     }
 }

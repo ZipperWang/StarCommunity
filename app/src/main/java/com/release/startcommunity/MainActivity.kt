@@ -36,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import com.release.startcommunity.model.Post
+import com.release.startcommunity.model.User
 import com.release.startcommunity.view.PostCreateScreen
 import com.release.startcommunity.view.PostDetailScreen
 
@@ -118,9 +119,16 @@ fun Application(){
                         )
                     }
                 }
-                1 -> LoginScreen(onLogin = {
-                    u, p -> userViewModel.login(u, p)
-                })
+                1 ->  {
+                    LoginScreen(
+                        onLogin = { username, password ->
+                            userViewModel.loginUser(username, password)
+                        },
+                        onRegister = { username, password ->
+                            userViewModel.registerUser(User(username, password))
+                        }
+                    )
+                }
             }
         }
     }
