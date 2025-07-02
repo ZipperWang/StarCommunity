@@ -1,3 +1,6 @@
+import java.text.SimpleDateFormat
+import java.util.Date
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -25,6 +28,16 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+    }
+    applicationVariants.all {
+        outputs.all {
+            val outputImpl = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss").format(Date())
+            val version = versionName
+            val buildType = buildType.name
+
+            outputImpl.outputFileName = "StarCommunity-${buildType}-${version}-${timeStamp}.apk"
         }
     }
     compileOptions {
@@ -73,4 +86,9 @@ dependencies {
 
     // 可选：图标库
     implementation ("androidx.compose.material:material-icons-extended")
+    implementation ("com.google.accompanist:accompanist-systemuicontroller:0.34.0")
+    implementation("androidx.navigation:navigation-compose:2.7.7")
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    implementation ("com.squareup.retrofit2:converter-scalars:2.9.0")
 }

@@ -1,6 +1,5 @@
 package com.release.startcommunity.view
 
-import android.R.attr.contentDescription
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,8 +10,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChatBubbleOutline
-import androidx.compose.material.icons.filled.Comment
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -34,18 +31,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
-import com.release.startcommunity.model.Comment
-import com.release.startcommunity.model.User
 import com.release.startcommunity.tool.Tool
-import com.release.startcommunity.tool.Tool.Companion.formatTimestamp
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 
@@ -53,9 +43,14 @@ import androidx.compose.foundation.verticalScroll
 
 import androidx.compose.material.icons.rounded.ChatBubbleOutline
 import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.SideEffect
 
 import coil.request.ImageRequest
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import com.release.startcommunity.model.User
+import com.release.startcommunity.viewmodel.UserViewModel
 
 import java.time.format.DateTimeFormatter
 
@@ -107,16 +102,21 @@ fun PostListScreen(
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { viewModel.updateSearchQuery(it) },
-                    placeholder = { Text("搜索帖子...") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                    singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
-                )
+//                OutlinedTextField(
+//                    value = query,
+//                    onValueChange = { viewModel.updateSearchQuery(it) },
+//                    placeholder = { Text("搜索帖子...") },
+//                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+//                    singleLine = true,
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .padding(horizontal = 12.dp, vertical = 8.dp)
+//                )
+                M3SearchBar(query,{
+                    viewModel.updateSearchQuery(it)
+                })
+
+
 
                 if (posts.isEmpty()) {
                     Box(
@@ -145,6 +145,31 @@ fun PostListScreen(
             }
         }
     }
+}
+
+@Composable
+fun M3SearchBar(
+    text: String,
+    onTextChange: (String) -> Unit
+) {
+    OutlinedTextField(
+        value = text,
+        onValueChange = onTextChange,
+        leadingIcon = { Icon(Icons.Default.Search, null) },
+        placeholder = { Text("搜索帖子...") },
+        singleLine = true,
+        shape = RoundedCornerShape(25.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor   = Color.White,
+            unfocusedContainerColor = Color.White,
+            disabledContainerColor  = Color.White,
+            focusedBorderColor      = Color.Transparent,
+            unfocusedBorderColor    = Color.Transparent
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(12.dp)
+    )
 }
 
 @Composable
@@ -189,7 +214,7 @@ fun PostCard(post: Post, onClick: () -> Unit) {
                     contentDescription = "帖子图片",
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(120.dp) // 减小图片高度以减少渲染开销
+                        .height(120.dp) // 减小图片高度一减少渲染开销
                         .clip(RoundedCornerShape(8.dp)),
                     contentScale = ContentScale.Crop
                 )
@@ -216,19 +241,23 @@ fun PostDetailScreen(
     post: Post,
     onBack: () -> Unit,
 ) {
+    val ui = rememberSystemUiController()
+    val barColor = Color.White
+    SideEffect { ui.setStatusBarColor(barColor, darkIcons = true) }
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("帖子内容") },
+            CenterAlignedTopAppBar(
+                title = { Text("测试") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "返回")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    titleContentColor = MaterialTheme.colorScheme.primary
+                    containerColor = Color.Transparent,
+                    titleContentColor = Color.Transparent,
                 ),
+                modifier = Modifier.fillMaxWidth()
             )
         },
     ) { padding ->
@@ -270,14 +299,13 @@ fun PostDetailScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            /** ---------- 正文 ---------- **/
             Text(
                 text = post.content,
                 style = MaterialTheme.typography.bodyLarge,
                 lineHeight = 22.sp,
             )
 
-            /** ---------- 图片 ---------- **/
+
             if (!post.images.isNullOrEmpty()) {
                 Spacer(Modifier.height(12.dp))
                 LazyRow(
@@ -361,7 +389,8 @@ private fun CommentCard(commenter: String, text: String) {
 @Composable
 fun PostCreateScreen(
     onSubmit: (Post) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    userViewModel: UserViewModel
 ) {
     var title by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
@@ -407,7 +436,11 @@ fun PostCreateScreen(
                     val post = Post(
                         title = title,
                         content = content,
-                        author = User(username = "release", password = "123456"), // 可根据登录用户替换
+                        author = User(
+                            email = userViewModel.currentUser.value?.email ?: "",
+                            username = userViewModel.currentUser.value?.username ?: "",
+                            password = userViewModel.currentUser.value?.password ?: "",
+                            avatar = userViewModel.currentUser.value?.avatar ?: ""),
                         timestamp = Tool.getCurrentTimestamp()
                     )
                     onSubmit(post)

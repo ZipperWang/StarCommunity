@@ -1,9 +1,17 @@
 package com.release.startcommunity.viewmodel
 
+import android.app.Application
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.State
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.release.startcommunity.SecureStore
 import com.release.startcommunity.api.ApiClient
 import com.release.startcommunity.api.LoginRequest
 import com.release.startcommunity.model.User
@@ -11,7 +19,28 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class UserViewModel : ViewModel() {
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.ByteArrayOutputStream
+import androidx.core.graphics.scale
+import com.release.startcommunity.api.EmailRequest
+
+
+class UserViewModel(private val app: Application): AndroidViewModel(app) {
+
+
+    private val _loggedIn = MutableStateFlow<Boolean>(false)
+    val loggedIn: StateFlow<Boolean> = _loggedIn
+
+
+        init{
+            tryAutoLogin()
+        }
+
 
     private val _users = MutableStateFlow<List<User>>(emptyList())
     val users: StateFlow<List<User>> = _users
@@ -45,34 +74,140 @@ class UserViewModel : ViewModel() {
         }
     }
 
+    private fun tryAutoLogin() = viewModelScope.launch {
+        if (_loggedIn.value) return@launch            // 已有 token → 略过
+
+        SecureStore.load(app)?.let { (user, pwd) ->
+            runCatching {
+                val res = ApiClient.api.login(LoginRequest(user, pwd))
+                _id.value = res.uid
+                _currentUser.value = ApiClient.api.getUserById(res.uid)
+                _errorMessage.value = null
+                _loggedIn.value = true
+                SecureStore.save(app, user, pwd)  // 成功写 token → loggedIn=true
+            }.onFailure { SecureStore.clear(app) }   // 失败清除凭据
+        }
+    }
+
     fun loginUser(username: String, password: String) {
         viewModelScope.launch {
             try {
-                val response = ApiClient.api.login(LoginRequest(username, password))
-                //TokenStore.save(response.token)
-                _id.value = response.uid
-                _currentUser.value = ApiClient.api.getUserById(response.uid)
+                val res = ApiClient.api.login(LoginRequest(username, password))
+                _id.value = res.uid
+                _currentUser.value = ApiClient.api.getUserById(res.uid)
                 _errorMessage.value = null
-            } catch (e: Exception) {
+                _loggedIn.value = true
+                SecureStore.save(app, username, password)
+            }catch (e: Exception){
                 _errorMessage.value = "登录失败: ${e.message}"
             }
+
         }
     }
 
 
-    fun registerUser(user: User) {
+    fun registerUser(user: User, code: String) {
         viewModelScope.launch {
             try {
-                val newUser = ApiClient.api.registerUser(user)
-                _currentUser.value = newUser
+                val res = ApiClient.api.verifyCode(user.email, code)
+                Log.d("Register", "验证码验证开始")
+                if (res.code() != 200) {
+                    _errorMessage.value = "验证码验证失败"
+                }else{
+                    Log.d("Register", "验证码验证成功")
+                    try {
+                        val newUser = ApiClient.api.registerUser(user)
+                        _currentUser.value = newUser.body()
+                    }catch (e: Exception){
+                        Log.e("Register", "注册失败[内]: ${e.message}")
+                    }
+
+
+
+                }
             } catch (e: Exception) {
                 _errorMessage.value = "注册失败: ${e.message}"
+                Log.e("Register", "注册失败: ${e.message}")
+            }
+        }
+    }
+
+    fun sendCode(email: String) {
+        viewModelScope.launch {
+            try {
+                val res = ApiClient.api.sendCode(email)
+                _errorMessage.value = null
+            } catch (e: Exception) {
+                _errorMessage.value = "发送验证码失败: ${e.message}"
+                Log.e("SendCode", "发送失败: ${e.message}")
+            }
+        }
+    }
+
+    fun verifyCode(email: String, code: String) {
+        viewModelScope.launch {
+            try {
+
+
+                _errorMessage.value = null
+            } catch (e: Exception) {
+                _errorMessage.value = "验证码验证失败: ${e.message}"
+            }
+        }
+    }
+
+    fun logoutUser() {
+        viewModelScope.launch {
+            try {
+                _id.value = -1L
+                _currentUser.value = null
+                _loggedIn.value = false
+                SecureStore.clear(app)
+            } catch (e: Exception) {
+                _errorMessage.value = "登出失败: ${e.message}"
             }
         }
     }
 
     fun clearError() {
         _errorMessage.value = null
+    }
+
+    fun uploadUserAvatar(userId: Long, uri: Uri, context: Context) {
+        viewModelScope.launch {
+            try {
+                val part = prepareAvatarPart(uri, context)
+                val response = ApiClient.api.uploadAvatar(userId, part)
+                if (response.isSuccessful) {
+                    val avatarUrl = response.body()?.avatarUrl
+                    _currentUser.value = _currentUser.value?.copy(avatar = avatarUrl.toString())
+                } else {
+                    Log.e("Upload", "上传失败: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e("Upload", "异常: ${e.message}")
+            }
+        }
+    }
+
+    fun resizeImageTo100x100(context: Context, uri: Uri): ByteArray {
+        val inputStream = context.contentResolver.openInputStream(uri)
+        val originalBitmap = BitmapFactory.decodeStream(inputStream)
+
+        val resizedBitmap = originalBitmap.scale(128, 128)
+
+        val outputStream = ByteArrayOutputStream()
+        resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
+
+        return outputStream.toByteArray()
+    }
+
+    fun prepareAvatarPart(uri: Uri, context: Context): MultipartBody.Part {
+//        val contentResolver = context.contentResolver
+//        val inputStream = contentResolver.openInputStream(uri)!!
+        val bytes = resizeImageTo100x100(context, uri)
+        val requestBody = bytes.toRequestBody("image/*".toMediaTypeOrNull())
+        return MultipartBody.Part.createFormData("file", "avatar.jpg", requestBody)
     }
 }
 
