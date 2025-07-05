@@ -3,70 +3,49 @@ package com.release.startcommunity
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.graphics.Shader
 import android.os.Build
 import android.os.Bundle
-import android.service.autofill.OnClickAction
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-
-import android.graphics.Shader
-import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-
-import androidx.compose.ui.graphics.*
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.padding
-
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.lifecycle.viewmodel.compose.viewModel
-
-import com.release.startcommunity.ui.theme.StartCommunityTheme
-import com.release.startcommunity.view.LoginScreen
-import com.release.startcommunity.view.PostListScreen
-import com.release.startcommunity.viewmodel.PostViewModel
-import com.release.startcommunity.viewmodel.UserViewModel
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.core.view.WindowCompat
-import com.release.startcommunity.model.Post
-import com.release.startcommunity.model.User
-import com.release.startcommunity.view.HyperOSBackground
-import com.release.startcommunity.view.PostCreateScreen
-import com.release.startcommunity.view.PostDetailScreen
-import com.release.startcommunity.view.RegisterScreen
-import androidx.compose.material3.*
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat.startActivity
+import androidx.core.view.WindowCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.*
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import com.release.startcommunity.model.Post
+import com.release.startcommunity.ui.theme.StartCommunityTheme
 import com.release.startcommunity.view.AboutScreen
+import com.release.startcommunity.view.HyperOSBackground
+import com.release.startcommunity.view.LoginScreen
+import com.release.startcommunity.view.PostDetailScreen
+import com.release.startcommunity.view.PostListScreen
+import com.release.startcommunity.viewmodel.PostViewModel
+import com.release.startcommunity.viewmodel.UserViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 
 class MainActivity : ComponentActivity() {
@@ -89,7 +68,9 @@ class MainActivity : ComponentActivity() {
 
 @SuppressLint("StateFlowValueCalledInComposition")
 @RequiresApi(Build.VERSION_CODES.S)
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class,
+    ExperimentalAnimationApi::class
+)
 @Composable
 fun Application(){
     val userViewModel: UserViewModel = viewModel()
@@ -97,6 +78,7 @@ fun Application(){
     var selectedTab by remember { mutableStateOf(0) }
     var selectedPost by remember { mutableStateOf<Post?>(null) }
     var createPost by remember { mutableStateOf(false) }
+    var showDetails by remember { mutableStateOf(false) }
     val sysUi = rememberSystemUiController()
     LaunchedEffect(Unit) {
         sysUi.setSystemBarsColor(
@@ -137,62 +119,103 @@ fun Application(){
                 selectedTab = it
             })
         },
-        modifier = Modifier.navigationBarsPadding()
+        modifier = Modifier
+            .navigationBarsPadding()
             .fillMaxSize(),
         contentWindowInsets = WindowInsets(0)
     ) { padding ->
-        AnimatedContent(
-            targetState = selectedTab,
-            label = "TabContent",
-            modifier = Modifier.padding(padding)
-        ) { target ->
-            val ctx = LocalContext.current
-            when (target) {
-                0 -> {
-                    when {
-                        selectedPost != null -> PostDetailScreen(
-                            post = selectedPost!!,
-                            onBack = { selectedPost = null }
-                        )
-                        createPost -> PostCreateScreen(
-                            onSubmit = {
-                                postsViewModel.addPost(it.title, it.content, userViewModel.id.value)
-                                createPost = false
-                            },
-                            onBack = { createPost = false },
-                            userViewModel = userViewModel
-                        )
-                        else -> PostListScreen(
-                            viewModel = postsViewModel,
-                            onCreateClick = { createPost = true }, // 传入发帖操作
-                            onPostClick = { selectedPost = it }
-                        )
-                    }
-                }
-                1 ->  {
-                    if (!loggedIn) {
-                        HyperOSBackground {
-                            LoginScreen(
-                                onLogin = { username, password ->
-                                    userViewModel.loginUser(username, password)
-                                },
-                                onRegisterClick = {
-                                    ctx.startActivity(Intent(ctx, RegisterActivity::class.java))
-                                }
-                            )
+                AnimatedContent(
+                    targetState = selectedTab,
+                    label = "TabContent",
+                    modifier = Modifier.padding(padding)
+                ) { target ->
+                    val ctx = LocalContext.current
+                    when (target) {
+                        0 -> {
+                            Box {
+                                // 帖子列表
+                                val scope = rememberCoroutineScope()
+                                PostListScreen(
+                                    viewModel = postsViewModel,
+                                    onCreateClick = { createPost = true }, // 传入发帖操作
+                                    onPostClick = {
+                                        selectedPost = it
+                                        scope.launch {
+                                            delay(300)
+                                            showDetails = true
+                                        }
+                                    },
+                                    userViewModel = userViewModel
+                                )
+                                // 帖子详情
+                                    AnimatedVisibility(
+                                        visible = selectedPost != null && showDetails,
+                                        enter = slideInHorizontally(
+                                            initialOffsetX = { it },
+                                            animationSpec = tween(350, easing = FastOutSlowInEasing)
+                                        ) + fadeIn(tween(350)),
+                                        exit = slideOutHorizontally(
+                                            targetOffsetX = { it },
+                                            animationSpec = tween(350, easing = FastOutSlowInEasing)
+                                        ) + fadeOut(tween(350))
+                                    ) {
+                                        PostDetailScreen(
+                                            post = selectedPost!!,
+                                            onBack = {
+                                                showDetails = false
+                                            }
+                                        )
+                                    }
+                            }
+//                            when {
+//                                selectedPost != null -> PostDetailScreen(
+//                                    post = selectedPost!!,
+//                                    onBack = { selectedPost = null },
+//                                    animatedVisibilityScope = this@AnimatedContent,
+//                                    sharedTransitionScope = this@SharedTransitionLayout
+//                                )
+//                                else -> PostListScreen(
+//                                    viewModel = postsViewModel,
+//                                    onCreateClick = { createPost = true }, // 传入发帖操作
+//                                    onPostClick = { selectedPost = it },
+//                                    userViewModel = userViewModel,
+//                                    animatedVisibilityScope = this@AnimatedContent,
+//                                    sharedTransitionScope = this@SharedTransitionLayout
+//                                )
+//                            }
                         }
-                    }else{
-                        AboutScreen(
-                            onTabChange = { selectedTab = it },
-                            onToggleTheme = {
-                                // TODO: 切换主题
-                            },
-                            onLogout = {
-                                userViewModel.logoutUser()
-                            },
-                            userViewModel = userViewModel
-                        )
-                    }
+
+                        1 -> {
+                            if (!loggedIn) {
+                                // 登录
+                                HyperOSBackground {
+                                    LoginScreen(
+                                        onLogin = { username, password ->
+                                            userViewModel.loginUser(username, password)
+                                        },
+                                        onRegisterClick = {
+                                            ctx.startActivity(
+                                                Intent(
+                                                    ctx,
+                                                    RegisterActivity::class.java
+                                                )
+                                            )
+                                        }
+                                    )
+                                }
+                            } else {
+                                // 用户信息
+                                AboutScreen(
+                                    onTabChange = { selectedTab = it },
+                                    onToggleTheme = {
+                                        // TODO: 切换主题
+                                    },
+                                    onLogout = {
+                                        userViewModel.logoutUser()
+                                    },
+                                    userViewModel = userViewModel
+                                )
+                            }
 //                    HyperOSBackground {
 //                        LoginScreen(
 //                            onLogin = { username, password ->
@@ -205,15 +228,23 @@ fun Application(){
 //                        )
 //                    }
 
+                        }
+//                2 ->{
+//                    PostCreateScreen(
+//                        onSubmit = {
+//                            postsViewModel.addPost(it.title, it.content, userViewModel.id.value)
+//                            selectedTab = 0
+//                                   },
+//                        onBack = { selectedTab = 0},
+//                        userViewModel = userViewModel
+//                    )
+//                }
+                    }
                 }
             }
         }
-    }
-}
 
-/* -----------------------------------------------------------
- * 玻璃效果底部导航栏（Compose + Material3）
- * ----------------------------------------------------------- */
+// 底部导航栏（）
 @Composable
 fun GlassNavigationBar(
     selectedIndex: Int,

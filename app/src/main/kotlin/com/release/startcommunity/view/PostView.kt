@@ -1,6 +1,21 @@
 package com.release.startcommunity.view
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.updateTransition
+import androidx.compose.animation.expandIn
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkOut
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -43,9 +58,11 @@ import androidx.compose.foundation.verticalScroll
 
 import androidx.compose.material.icons.rounded.ChatBubbleOutline
 import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.SideEffect
+import coil.compose.rememberAsyncImagePainter
 
 import coil.request.ImageRequest
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
@@ -54,17 +71,21 @@ import com.release.startcommunity.viewmodel.UserViewModel
 
 import java.time.format.DateTimeFormatter
 
+@OptIn(ExperimentalAnimationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun PostListScreen(
     viewModel: PostViewModel = viewModel(factory = viewModelFactory { PostViewModel() }),
+    userViewModel: UserViewModel,
     onCreateClick: () -> Unit,
-    onPostClick: (Post) -> Unit
+    onPostClick: (Post) -> Unit,
 ) {
     val posts by viewModel.filteredPosts.collectAsState()
     val query by viewModel.query.collectAsState()
     val isLoading by viewModel.loading.collectAsState()
     val hasLoadedAllData by viewModel.reachEnd.collectAsState()
     val listState = rememberLazyListState()
+    var showCreatePage by remember { mutableStateOf(false) }
+
 
     // 修改预加载逻辑，只在未加载所有数据时触发
     LaunchedEffect(listState) {
@@ -78,30 +99,35 @@ fun PostListScreen(
                 }
             }
     }
-
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(onClick = onCreateClick) {
-                Icon(Icons.Default.Add, contentDescription = "发帖")
+            if (!showCreatePage) {
+                FloatingActionButton(
+                    onClick = {
+                        showCreatePage = true
+                    },
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "发帖")
+                }
             }
         }
     ) { innerPadding ->
 
-        if (isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-            ) {
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                ) {
 //                OutlinedTextField(
 //                    value = query,
 //                    onValueChange = { viewModel.updateSearchQuery(it) },
@@ -112,40 +138,70 @@ fun PostListScreen(
 //                        .fillMaxWidth()
 //                        .padding(horizontal = 12.dp, vertical = 8.dp)
 //                )
-                M3SearchBar(query,{
-                    viewModel.updateSearchQuery(it)
-                })
+                    M3SearchBar(query, {
+                        viewModel.updateSearchQuery(it)
+                    })
 
 
 
-                if (posts.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("暂无帖子，点击右下角按钮发布吧～")
-                    }
-                } else {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        reverseLayout = false,
-                        userScrollEnabled = true
-                    ) {
-                        items(posts, key = { it.id }) { post ->
-                            PostCard(post = post, onClick = { onPostClick(post) })
+                    if (posts.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("暂无帖子，点击右下角按钮发布吧～")
+                        }
+                    } else {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            reverseLayout = false,
+                            userScrollEnabled = true
+                        ) {
+                            items(posts, key = { it.id }) { post ->
+                                PostCard(post = post, onClick = { onPostClick(post) })
+                            }
                         }
                     }
                 }
             }
+            // 发布界面动画展开层
+            AnimatedVisibility(
+                visible = showCreatePage,
+                enter = fadeIn(animationSpec = tween(500)) + expandIn(
+                    expandFrom = Alignment.BottomEnd,
+                    animationSpec = tween(500)
+                ),
+                exit = fadeOut(animationSpec = tween(500)) + shrinkOut(
+                    shrinkTowards = Alignment.BottomEnd,
+                    animationSpec = tween(500)
+                ),
+                modifier = Modifier.fillMaxSize()
+            ) {
+//            Box(
+//                modifier = Modifier
+//                    .fillMaxSize()
+//                    .background(Color.White)
+//                    .clickable { showCreatePage = false },
+//                contentAlignment = Alignment.Center
+//            ) {
+                PostCreateScreen(
+                    onSubmit = {
+                        viewModel.addPost(it.title, it.content, userViewModel.id.value)
+                        showCreatePage = false
+                    },
+                    onBack = { showCreatePage = false },
+                    userViewModel = userViewModel
+                )
+
+            }
         }
     }
-}
 
 @Composable
 fun M3SearchBar(
@@ -172,70 +228,84 @@ fun M3SearchBar(
     )
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun PostCard(post: Post, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+fun PostCard(post: Post,
+             onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
 
-            // 简化用户信息行
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                AsyncImage(
-                    model = post.author.avatar,
-                    contentDescription = "头像",
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape),
-                    contentScale = ContentScale.Crop
-                )
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = LocalIndication.current,
+                    onClick = onClick
+                ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
 
-                Spacer(modifier = Modifier.width(8.dp))
+                // 简化用户信息行
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    val  avatarUrl = remember(post.author.avatar) { post.author.avatar }
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(avatarUrl)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = "头像",
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
 
-                Text(text = post.author.username, fontWeight = FontWeight.Bold)
-            }
+                    Spacer(modifier = Modifier.width(8.dp))
 
-            Spacer(modifier = Modifier.height(6.dp))
+                    Text(text = post.author.username, fontWeight = FontWeight.Bold)
+                }
 
-            Text(text = post.title, style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
-            Text(text = post.content, maxLines = 3) // 限制行数以减少布局复杂度
+                Text(text = post.title, style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(4.dp))
 
-            if (!post.images.isNullOrEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Text(text = post.content, maxLines = 3) // 限制行数以减少布局复杂度
 
-                AsyncImage(
-                    model = post.images.first(), // 只显示第一张图
-                    contentDescription = "帖子图片",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp) // 减小图片高度一减少渲染开销
-                        .clip(RoundedCornerShape(8.dp)),
-                    contentScale = ContentScale.Crop
-                )
-            }
+                if (!post.images.isNullOrEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
 
-            Spacer(modifier = Modifier.height(10.dp))
+                    AsyncImage(
+                        model = post.images.first(), // 只显示第一张图
+                        contentDescription = "帖子图片",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp) // 减小图片高度一减少渲染开销
+                            .clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                }
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Icon(Icons.Default.FavoriteBorder, contentDescription = null)
-                Text(text = "${post.likes}")
-                Icon(Icons.Default.ChatBubbleOutline, contentDescription = null)
-                Text(text = "${post.comments.size}")
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Icon(Icons.Default.FavoriteBorder, contentDescription = null)
+                    Text(text = "${post.likes}")
+                    Icon(Icons.Default.ChatBubbleOutline, contentDescription = null)
+                    Text(text = "${post.comments.size}")
+                }
             }
         }
-    }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun PostDetailScreen(
     post: Post,
@@ -274,7 +344,7 @@ fun PostDetailScreen(
             ) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
-                        .data(post.author.avatar)
+                        .data(post. author.avatar)
                         .crossfade(true)
                         .build(),
                     contentDescription = "avatar",
