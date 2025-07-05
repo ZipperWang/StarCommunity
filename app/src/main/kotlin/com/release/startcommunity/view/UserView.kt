@@ -405,6 +405,7 @@ private fun SectionCard(content: @Composable ColumnScope.() -> Unit) =
         elevation = CardDefaults.cardElevation(0.dp)
     ) { Column(content = content) }
 
+
 @Composable
 private fun ProfileRow(
     avatar: String,

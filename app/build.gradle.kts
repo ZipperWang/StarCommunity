@@ -76,16 +76,14 @@ dependencies {
     implementation(libs.converter.gson)
     implementation(libs.logging.interceptor)
     implementation(libs.kotlinx.coroutines.android)
-    implementation("io.coil-kt:coil-compose:2.4.0")
-    implementation("androidx.compose.material:material-icons-extended")
+    implementation(libs.coil.compose)
+    implementation(libs.androidx.material.icons.extended)
 
-    // Material 3 & foundation-lazy
-    implementation ("androidx.compose.material3:material3")
-    implementation ("androidx.compose.foundation:foundation")      // LazyRow 在这里
+    implementation (libs.androidx.foundation)      // LazyRow 在这里
 
 
     // 可选：图标库
-    implementation ("androidx.compose.material:material-icons-extended")
+    implementation (libs.material.icons.extended)
     implementation ("com.google.accompanist:accompanist-systemuicontroller:0.34.0")
     implementation("androidx.navigation:navigation-compose:2.7.7")
     implementation("androidx.datastore:datastore-preferences:1.1.1")

@@ -1,19 +1,20 @@
 package com.release.startcommunity.view
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.expandIn
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkOut
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionLayout
-import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.animation.core.*
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -53,22 +54,19 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
-
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-
 import androidx.compose.material.icons.rounded.ChatBubbleOutline
 import androidx.compose.material.icons.rounded.FavoriteBorder
-import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.SideEffect
-import coil.compose.rememberAsyncImagePainter
-
+import androidx.compose.ui.text.input.KeyboardType
 import coil.request.ImageRequest
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.release.startcommunity.model.User
 import com.release.startcommunity.viewmodel.UserViewModel
-
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalAnimationApi::class, ExperimentalSharedTransitionApi::class)
@@ -128,16 +126,6 @@ fun PostListScreen(
                         .fillMaxSize()
                         .padding(innerPadding)
                 ) {
-//                OutlinedTextField(
-//                    value = query,
-//                    onValueChange = { viewModel.updateSearchQuery(it) },
-//                    placeholder = { Text("搜索帖子...") },
-//                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-//                    singleLine = true,
-//                    modifier = Modifier
-//                        .fillMaxWidth()
-//                        .padding(horizontal = 12.dp, vertical = 8.dp)
-//                )
                     M3SearchBar(query, {
                         viewModel.updateSearchQuery(it)
                     })
@@ -183,13 +171,6 @@ fun PostListScreen(
                 ),
                 modifier = Modifier.fillMaxSize()
             ) {
-//            Box(
-//                modifier = Modifier
-//                    .fillMaxSize()
-//                    .background(Color.White)
-//                    .clickable { showCreatePage = false },
-//                contentAlignment = Alignment.Center
-//            ) {
                 PostCreateScreen(
                     onSubmit = {
                         viewModel.addPost(it.title, it.content, userViewModel.id.value)
@@ -310,14 +291,17 @@ fun PostCard(post: Post,
 fun PostDetailScreen(
     post: Post,
     onBack: () -> Unit,
+    showCommentBar: Boolean,
+    onSubmitComment: () -> Unit
 ) {
     val ui = rememberSystemUiController()
     val barColor = Color.White
+    var commentText by remember { mutableStateOf("") }
     SideEffect { ui.setStatusBarColor(barColor, darkIcons = true) }
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("测试") },
+                title = { Text(post.title) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "返回")
@@ -325,18 +309,79 @@ fun PostDetailScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
-                    titleContentColor = Color.Transparent,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
                 ),
                 modifier = Modifier.fillMaxWidth()
             )
         },
-    ) { padding ->
+        // 评论栏
+        bottomBar = {
+            AnimatedVisibility(
+                visible = showCommentBar ,
+                enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
+                exit = fadeOut() + slideOutVertically(targetOffsetY = { it })
+            ) {
+            Column(
+                modifier = Modifier
+                    .background(Color(0xFFF8F8F8))
+                    .padding(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFFDFDFD))
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    OutlinedTextField(
+                        value = commentText,
+                        onValueChange = { commentText = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .heightIn(min = 56.dp, max = 120.dp)
+                            .padding(horizontal = 4.dp),
+                        placeholder = { Text("写下你的评论...") },
+                        maxLines = 4,
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = false,
+                        keyboardOptions = KeyboardOptions.Default.copy(
+                            imeAction = ImeAction.Default,
+                            keyboardType = KeyboardType.Text
+                        ),
+                        keyboardActions = KeyboardActions(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = Color(0xFFE0E0E0),
+                            cursorColor = MaterialTheme.colorScheme.primary,
+                            focusedPlaceholderColor = Color.Gray,
+                            unfocusedPlaceholderColor = Color.LightGray
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Button(
+                        onClick = onSubmitComment,
+                        enabled = commentText.isNotBlank(),
+                        modifier = Modifier.align(Alignment.Bottom),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("发送")
+                    }
+                }
+
+                }
+            }
+        }
+    ) { innerPadding ->
         Column(
             modifier = Modifier
-                .padding(padding)
+                .padding(innerPadding)
+                .padding(16.dp)
                 .verticalScroll(rememberScrollState())
-                .fillMaxSize()
-                .padding(16.dp),
+                .fillMaxSize(),
         ) {
             /** ---------- 作者信息 ---------- **/
             Row(

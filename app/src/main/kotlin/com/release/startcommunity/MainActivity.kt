@@ -15,11 +15,14 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -57,6 +60,7 @@ class MainActivity : ComponentActivity() {
         window.statusBarColor = android.graphics.Color.TRANSPARENT
         setContent {
             StartCommunityTheme(dynamicColor = false) {
+
                 Application()
             }
         }
@@ -84,40 +88,43 @@ fun Application(){
         sysUi.setSystemBarsColor(
             color = Color.Transparent,
             darkIcons = false,
-            isNavigationBarContrastEnforced = false   // 关闭强制对比度，避免变灰
+            isNavigationBarContrastEnforced = false
         )
     }
     val loggedIn by userViewModel.loggedIn.collectAsState()
 
+    val bottomBarState = remember { MutableTransitionState(!showDetails) }
+    bottomBarState.targetState = !showDetails
+
+    var showCommentBar by remember { mutableStateOf(false) }
+
+    LaunchedEffect(bottomBarState.currentState, bottomBarState.targetState) {
+        if (showDetails) {
+            snapshotFlow { bottomBarState.isIdle }.collect { isIdle ->
+                if (isIdle && !bottomBarState.currentState) {
+                    showCommentBar = true
+                }
+            }
+        } else {
+            showCommentBar = false
+        }
+    }
+
 
 
     Scaffold(
-//        topBar = {
-//            if (selectedPost == null && !createPost) {
-//                TopAppBar(title = {
-//                    Text(if (selectedTab == 0) "社区" else "我的")
-//                })
-//            }
-//        },
         bottomBar = {
-//            NavigationBar (containerColor = Color.White) {
-//                NavigationBarItem(
-//                    selected = selectedTab == 0,
-//                    onClick = { selectedTab = 0 },
-//                    icon = { Icon(Icons.Default.Home, null) },
-//                    label = { Text("首页") }
-//                )
-//                NavigationBarItem(
-//                    selected = selectedTab == 1,
-//                    onClick = { selectedTab = 1 },
-//                    icon = { Icon(Icons.Default.Person, null) },
-//                    label = { Text("我的") }
-//                )
-//            }
-            GlassNavigationBar(selectedTab,
-                onSelect = {
-                selectedTab = it
-            })
+            AnimatedVisibility(
+                visibleState = bottomBarState,
+                enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
+                exit = fadeOut() + slideOutVertically(targetOffsetY = { it })
+            ) {
+                GlassNavigationBar(
+                    selectedTab,
+                    onSelect = {
+                        selectedTab = it
+                    })
+            }
         },
         modifier = Modifier
             .navigationBarsPadding()
@@ -163,26 +170,14 @@ fun Application(){
                                             post = selectedPost!!,
                                             onBack = {
                                                 showDetails = false
+                                            },
+                                            showCommentBar = showCommentBar,
+                                            onSubmitComment = {
+
                                             }
                                         )
                                     }
                             }
-//                            when {
-//                                selectedPost != null -> PostDetailScreen(
-//                                    post = selectedPost!!,
-//                                    onBack = { selectedPost = null },
-//                                    animatedVisibilityScope = this@AnimatedContent,
-//                                    sharedTransitionScope = this@SharedTransitionLayout
-//                                )
-//                                else -> PostListScreen(
-//                                    viewModel = postsViewModel,
-//                                    onCreateClick = { createPost = true }, // 传入发帖操作
-//                                    onPostClick = { selectedPost = it },
-//                                    userViewModel = userViewModel,
-//                                    animatedVisibilityScope = this@AnimatedContent,
-//                                    sharedTransitionScope = this@SharedTransitionLayout
-//                                )
-//                            }
                         }
 
                         1 -> {
@@ -216,29 +211,7 @@ fun Application(){
                                     userViewModel = userViewModel
                                 )
                             }
-//                    HyperOSBackground {
-//                        LoginScreen(
-//                            onLogin = { username, password ->
-//                                userViewModel.loginUser(username, password)
-//                            },
-//                            onRegisterClick = {
-//
-//                                ctx.startActivity(Intent(ctx, RegisterActivity::class.java))
-//                            }
-//                        )
-//                    }
-
                         }
-//                2 ->{
-//                    PostCreateScreen(
-//                        onSubmit = {
-//                            postsViewModel.addPost(it.title, it.content, userViewModel.id.value)
-//                            selectedTab = 0
-//                                   },
-//                        onBack = { selectedTab = 0},
-//                        userViewModel = userViewModel
-//                    )
-//                }
                     }
                 }
             }

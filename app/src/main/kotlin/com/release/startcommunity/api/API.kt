@@ -12,6 +12,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.converter.scalars.ScalarsConverterFactory
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.Field
 import retrofit2.http.GET
 import retrofit2.http.Multipart
@@ -33,11 +34,17 @@ interface PostApiService {
     @POST("posts/{id}/like")
     suspend fun likePost(@Path("id") postId: Long): Int
 
-    @POST("comments")
-    suspend fun createComment(@Body request: CreateCommentRequest): Comment
+    @GET("comments/post/{postId}")
+    suspend fun getComments(@Path("postId") postId: Long): List<Comment>
 
-    @POST("comments/{id}/like")
-    suspend fun likeComment(@Path("id") commentId: Long): Int
+    @POST("comments")
+    suspend fun postComment(@Body comment: Comment): Comment
+
+    @DELETE("comments/{commentId}")
+    suspend fun deleteComment(@Path("commentId") commentId: Long): Response<Unit>
+
+    @POST("comments/{commentId}/like")
+    suspend fun likeComment(@Path("commentId") commentId: Long): Comment
 
     @GET("users")
     suspend fun getUsers(): List<User>
