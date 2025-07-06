@@ -1,5 +1,6 @@
 package com.release.startcommunity.view
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.tween
@@ -65,6 +66,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.text.input.KeyboardType
 import coil.request.ImageRequest
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import com.release.startcommunity.api.CreatePostRequest
 import com.release.startcommunity.model.User
 import com.release.startcommunity.viewmodel.UserViewModel
 import java.time.format.DateTimeFormatter
@@ -232,7 +234,7 @@ fun PostCard(post: Post,
 
                 // 简化用户信息行
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    val  avatarUrl = remember(post.author.avatar) { post.author.avatar }
+                    val  avatarUrl = remember(post.user.avatar) { post.user.avatar }
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
                             .data(avatarUrl)
@@ -247,7 +249,7 @@ fun PostCard(post: Post,
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    Text(text = post.author.username, fontWeight = FontWeight.Bold)
+                    Text(text = post.user.username, fontWeight = FontWeight.Bold)
                 }
 
                 Spacer(modifier = Modifier.height(6.dp))
@@ -257,19 +259,19 @@ fun PostCard(post: Post,
 
                 Text(text = post.content, maxLines = 3) // 限制行数以减少布局复杂度
 
-                if (!post.images.isNullOrEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    AsyncImage(
-                        model = post.images.first(), // 只显示第一张图
-                        contentDescription = "帖子图片",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(120.dp) // 减小图片高度一减少渲染开销
-                            .clip(RoundedCornerShape(8.dp)),
-                        contentScale = ContentScale.Crop
-                    )
-                }
+//                if (!post.images.isNullOrEmpty()) {
+//                    Spacer(modifier = Modifier.height(8.dp))
+//
+//                    AsyncImage(
+//                        model = post.images.first(), // 只显示第一张图
+//                        contentDescription = "帖子图片",
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .height(120.dp) // 减小图片高度一减少渲染开销
+//                            .clip(RoundedCornerShape(8.dp)),
+//                        contentScale = ContentScale.Crop
+//                    )
+//                }
 
                 Spacer(modifier = Modifier.height(10.dp))
 
@@ -292,7 +294,7 @@ fun PostDetailScreen(
     post: Post,
     onBack: () -> Unit,
     showCommentBar: Boolean,
-    onSubmitComment: () -> Unit
+    onSubmitComment: (Long, String) -> Unit
 ) {
     val ui = rememberSystemUiController()
     val barColor = Color.White
@@ -362,7 +364,10 @@ fun PostDetailScreen(
                     Spacer(modifier = Modifier.width(8.dp))
 
                     Button(
-                        onClick = onSubmitComment,
+                        onClick = {
+                            onSubmitComment(post.id, commentText)
+                            commentText = ""
+                                  },
                         enabled = commentText.isNotBlank(),
                         modifier = Modifier.align(Alignment.Bottom),
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
@@ -389,7 +394,7 @@ fun PostDetailScreen(
             ) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
-                        .data(post. author.avatar)
+                        .data(post. user.avatar)
                         .crossfade(true)
                         .build(),
                     contentDescription = "avatar",
@@ -401,7 +406,7 @@ fun PostDetailScreen(
                 Spacer(Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = post.author.username,
+                        text = post.user.username,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     )
                     Text(
@@ -421,23 +426,23 @@ fun PostDetailScreen(
             )
 
 
-            if (!post.images.isNullOrEmpty()) {
-                Spacer(Modifier.height(12.dp))
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(post.images.size) { index ->
-                        AsyncImage(
-                            model = post.images[index],
-                            contentDescription = "post image",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .size(220.dp)
-                                .clip(RoundedCornerShape(12.dp)),
-                        )
-                    }
-                }
-            }
+//            if (!post.images.isNullOrEmpty()) {
+//                Spacer(Modifier.height(12.dp))
+//                LazyRow(
+//                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+//                ) {
+//                    items(post.images.size) { index ->
+//                        AsyncImage(
+//                            model = post.images[index],
+//                            contentDescription = "post image",
+//                            contentScale = ContentScale.Crop,
+//                            modifier = Modifier
+//                                .size(220.dp)
+//                                .clip(RoundedCornerShape(12.dp)),
+//                        )
+//                    }
+//                }
+//            }
 
             /** ---------- 点赞 / 评论 ---------- **/
             Spacer(Modifier.height(16.dp))
@@ -456,6 +461,7 @@ fun PostDetailScreen(
             }
 
             /** ---------- 评论列表 ---------- **/
+            Log.d("post", "id:${post.id} comments: ${post.comments}")
             if (post.comments.isNotEmpty()) {
                 Spacer(Modifier.height(24.dp))
                 Text(
@@ -464,7 +470,7 @@ fun PostDetailScreen(
                 )
                 Spacer(Modifier.height(8.dp))
                 post.comments.forEach { comment ->
-                    CommentCard(commenter = comment.author.username, text = comment.content)
+                    CommentCard(commenter = comment.user.username, text = comment.comment)
                 }
             }
         }
@@ -503,7 +509,7 @@ private fun CommentCard(commenter: String, text: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PostCreateScreen(
-    onSubmit: (Post) -> Unit,
+    onSubmit: (CreatePostRequest) -> Unit,
     onBack: () -> Unit,
     userViewModel: UserViewModel
 ) {
@@ -548,16 +554,7 @@ fun PostCreateScreen(
             Spacer(modifier = Modifier.height(24.dp))
             Button(
                 onClick = {
-                    val post = Post(
-                        title = title,
-                        content = content,
-                        author = User(
-                            email = userViewModel.currentUser.value?.email ?: "",
-                            username = userViewModel.currentUser.value?.username ?: "",
-                            password = userViewModel.currentUser.value?.password ?: "",
-                            avatar = userViewModel.currentUser.value?.avatar ?: ""),
-                        timestamp = Tool.getCurrentTimestamp()
-                    )
+                    val post = CreatePostRequest(title, content, userViewModel.id.value)
                     onSubmit(post)
                 },
                 modifier = Modifier.align(Alignment.End)

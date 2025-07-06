@@ -28,6 +28,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.ByteArrayOutputStream
 import androidx.core.graphics.scale
 import com.release.startcommunity.api.EmailRequest
+import com.release.startcommunity.api.RegisterRequest
 
 
 class UserViewModel(private val app: Application): AndroidViewModel(app) {
@@ -80,8 +81,8 @@ class UserViewModel(private val app: Application): AndroidViewModel(app) {
         SecureStore.load(app)?.let { (user, pwd) ->
             runCatching {
                 val res = ApiClient.api.login(LoginRequest(user, pwd))
-                _id.value = res.uid
-                _currentUser.value = ApiClient.api.getUserById(res.uid)
+                _id.value = res.userId
+                _currentUser.value = ApiClient.api.getUserById(res.userId)
                 _errorMessage.value = null
                 _loggedIn.value = true
                 SecureStore.save(app, user, pwd)  // 成功写 token → loggedIn=true
@@ -93,8 +94,9 @@ class UserViewModel(private val app: Application): AndroidViewModel(app) {
         viewModelScope.launch {
             try {
                 val res = ApiClient.api.login(LoginRequest(username, password))
-                _id.value = res.uid
-                _currentUser.value = ApiClient.api.getUserById(res.uid)
+                Log.d("Login", "登录成功:" + res.userId + res.token)
+                _id.value = res.userId
+                _currentUser.value = ApiClient.api.getUserById(res.userId)
                 _errorMessage.value = null
                 _loggedIn.value = true
                 SecureStore.save(app, username, password)
@@ -106,7 +108,7 @@ class UserViewModel(private val app: Application): AndroidViewModel(app) {
     }
 
 
-    fun registerUser(user: User, code: String) {
+    fun registerUser(user: RegisterRequest, code: String) {
         viewModelScope.launch {
             try {
                 val res = ApiClient.api.verifyCode(user.email, code)

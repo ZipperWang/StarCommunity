@@ -38,7 +38,7 @@ interface PostApiService {
     suspend fun getComments(@Path("postId") postId: Long): List<Comment>
 
     @POST("comments")
-    suspend fun postComment(@Body comment: Comment): Comment
+    suspend fun postComment(@Body comment: CreateCommentRequest): Response<Comment>
 
     @DELETE("comments/{commentId}")
     suspend fun deleteComment(@Path("commentId") commentId: Long): Response<Unit>
@@ -53,7 +53,7 @@ interface PostApiService {
     suspend fun getUserById(@Path("id") id: Long): User
 
     @POST("users")
-    suspend fun registerUser(@Body user: User): Response<User>
+    suspend fun registerUser(@Body user: RegisterRequest): Response<User>
 
     @POST("users/login")
     suspend fun login(@Body request: LoginRequest): TokenResponse
@@ -105,10 +105,11 @@ object ApiClient {
 }
 
 data class CreatePostRequest(val title: String, val content: String, val userId: Long)
-data class CreateCommentRequest(val postId: Long, val userId: Long, val content: String)
+data class CreateCommentRequest(val postId: Long, val user: User, val content: String)
 data class LoginRequest(val username: String, val password: String)
+data class RegisterRequest(val username: String, val password: String, val email: String)
 data class EmailRequest(val email: String, val code: String)
-data class TokenResponse(val token: String, val uid: Long)
+data class TokenResponse(val token: String, val userId: Long)
 data class PageResponse<T>(
     val content: List<T>,
     val number: Int,

@@ -6,6 +6,7 @@ import android.content.Intent
 import android.graphics.Shader
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -38,6 +39,7 @@ import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.*
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import com.release.startcommunity.api.ApiClient
 import com.release.startcommunity.model.Post
 import com.release.startcommunity.ui.theme.StartCommunityTheme
 import com.release.startcommunity.view.AboutScreen
@@ -83,6 +85,7 @@ fun Application(){
     var selectedPost by remember { mutableStateOf<Post?>(null) }
     var createPost by remember { mutableStateOf(false) }
     var showDetails by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
     val sysUi = rememberSystemUiController()
     LaunchedEffect(Unit) {
         sysUi.setSystemBarsColor(
@@ -141,14 +144,16 @@ fun Application(){
                         0 -> {
                             Box {
                                 // 帖子列表
-                                val scope = rememberCoroutineScope()
                                 PostListScreen(
                                     viewModel = postsViewModel,
                                     onCreateClick = { createPost = true }, // 传入发帖操作
                                     onPostClick = {
                                         selectedPost = it
-                                        scope.launch {
-                                            delay(300)
+                                        showDetails = false
+                                        coroutineScope.launch {
+                                            val comments = ApiClient.api.getComments(it.id)
+                                            Log.d("PostVM", "加载评论成功$comments")
+                                            selectedPost = it.copy(comments = comments)
                                             showDetails = true
                                         }
                                     },
@@ -172,8 +177,12 @@ fun Application(){
                                                 showDetails = false
                                             },
                                             showCommentBar = showCommentBar,
-                                            onSubmitComment = {
-
+                                            onSubmitComment = {postId, content ->
+                                                postsViewModel.createComment(
+                                                    postId,
+                                                    content,
+                                                    userViewModel
+                                                )
                                             }
                                         )
                                     }

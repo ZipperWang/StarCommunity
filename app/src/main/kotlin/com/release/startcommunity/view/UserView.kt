@@ -68,6 +68,7 @@ import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.release.startcommunity.R
+import com.release.startcommunity.api.RegisterRequest
 import com.release.startcommunity.model.User
 import com.release.startcommunity.viewmodel.UserViewModel
 import kotlinx.coroutines.delay
@@ -134,7 +135,7 @@ fun LoginScreen(onLogin: (String, String) -> Unit, onRegisterClick: () -> Unit) 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
-    onRegisterSuccess: (user: User, code: String) -> Unit,
+    onRegisterSuccess: (user: RegisterRequest, code: String) -> Unit,
     onSendCode: (email: String) -> Unit,
     onLoginClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -247,7 +248,7 @@ fun RegisterScreen(
 
             /* 注册按钮 ------------------------- */
             Button(
-                onClick = { onRegisterSuccess(User(user, pwd, email, "http://47.121.204.76:8080/uploads/deault.jpg"), code) },
+                onClick = { onRegisterSuccess(RegisterRequest(user, pwd, email), code) },
                 enabled = allValid,
                 modifier = Modifier
                     .fillMaxWidth()

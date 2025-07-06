@@ -1,8 +1,6 @@
 package com.release.startcommunity.viewmodel
 
 import android.util.Log
-import android.widget.Toast
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
@@ -17,8 +15,9 @@ import kotlinx.coroutines.flow.stateIn
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.SnapshotStateList
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
+import com.release.startcommunity.api.CreateCommentRequest
+import com.release.startcommunity.model.Comment
+import com.release.startcommunity.model.User
 
 class PostViewModel : ViewModel() {
 
@@ -26,6 +25,9 @@ class PostViewModel : ViewModel() {
 
     private val _posts = mutableStateListOf<Post>()        // 用 StateList 追加更省事
     val posts: SnapshotStateList<Post> = _posts
+
+    private val _comments = mutableStateListOf<Comment>()
+    val comments: SnapshotStateList<Comment> = _comments
 
     private val postsFlow = snapshotFlow { posts.toList() }
 
@@ -96,5 +98,35 @@ class PostViewModel : ViewModel() {
                 Log.e("PostVM", "发帖失败", e)
             }
         }
+    }
+
+    fun createComment(postId: Long, content: String, userViewModel: UserViewModel) {
+        viewModelScope.launch {
+
+
+            try {
+                val created = ApiClient.api.postComment(
+                    CreateCommentRequest(postId, userViewModel.currentUser.value!!, content)
+                )
+                loadComments(postId)
+
+            } catch (e: Exception) {
+                Log.e("PostVM", "发帖失败", e)
+            }
+        }
+    }
+
+    fun loadComments(postId: Long): List<Comment> {
+        viewModelScope.launch {
+            try {
+                val index = _posts.indexOfFirst { it.id == postId }
+                val comments = ApiClient.api.getComments(postId)
+                Log.d("PostVM", "${index}id:${_posts[index].id}加载评论成功$comments")
+                _posts[index].copy(comments = comments)
+            } catch (e: Exception) {
+                Log.e("PostVM", "获取评论失败", e)
+            }
+        }
+        return emptyList()
     }
 }
