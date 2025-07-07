@@ -8,6 +8,7 @@ import android.os.Build
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -37,7 +38,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -60,6 +60,7 @@ import androidx.compose.foundation.background
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
@@ -75,60 +76,65 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 fun LoginScreen(onLogin: (String, String) -> Unit, onRegisterClick: () -> Unit) {
     var username by remember { mutableStateOf("") }
 
     var password by remember { mutableStateOf("") }
-
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("用户登录", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(16.dp))
-        M3InputTextBar(outText = username, hintText = "用户名", onTextChange = {
-            username = it
-        }, icon = Icons.Default.AccountCircle)
+    Box(modifier = Modifier.fillMaxSize()) {
+        ShaderBackground(modifier = Modifier.fillMaxSize())
+        Column(
+            modifier = Modifier.fillMaxSize().padding(24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("用户登录", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(16.dp))
+            M3InputTextBar(outText = username, hintText = "用户名", onTextChange = {
+                username = it
+            }, icon = Icons.Default.AccountCircle)
 //        OutlinedTextField(
 //            value = username,
 //            onValueChange = { username = it },
 //            label = { Text("用户名") })
-        Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(8.dp))
 //        OutlinedTextField(
 //            value = password,
 //            onValueChange = { password = it },
 //            label = { Text("密码") },
 //            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
 //        )
-        M3InputTextBar(outText = password, hintText = "密码", onTextChange = {
-            password = it
-        }, icon = Icons.Default.Password)
-        Spacer(Modifier.height(16.dp))
+            M3InputTextBar(outText = password, hintText = "密码", onTextChange = {
+                password = it
+            }, icon = Icons.Default.Password)
+            Spacer(Modifier.height(16.dp))
 
-        Button(onClick = { onLogin(username, password) },
-            Modifier.fillMaxWidth()
-                .padding(12.dp)
-                .height(56.dp)) {
-            Text("登录")
-        }
-        Spacer(Modifier.height(96.dp))
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text("没有账号？")
-
-            TextButton(
-                onClick = onRegisterClick,
-                contentPadding = PaddingValues(0.dp),
-                modifier = Modifier.defaultMinSize(minWidth = 1.dp, minHeight = 1.dp)
+            Button(
+                onClick = { onLogin(username, password) },
+                Modifier.fillMaxWidth()
+                    .padding(12.dp)
+                    .height(56.dp)
             ) {
-                Text("注册")
+                Text("登录")
             }
-        }
+            Spacer(Modifier.height(96.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text("没有账号？")
 
+                TextButton(
+                    onClick = onRegisterClick,
+                    contentPadding = PaddingValues(0.dp),
+                    modifier = Modifier.defaultMinSize(minWidth = 1.dp, minHeight = 1.dp)
+                ) {
+                    Text("注册")
+                }
+            }
+
+        }
     }
 }
 
@@ -306,6 +312,7 @@ fun M3InputTextBar(
 
 /* ─────────  页面入口  ───────── */
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @SuppressLint("StateFlowValueCalledInComposition")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -322,65 +329,85 @@ fun AboutScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("主页") },
-                scrollBehavior = scrollBehavior
-            )
-        }
+                title = { Text("") },
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent
+                ))
+        },
+        containerColor = Color.Transparent,
     ) { inner ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            ShaderBackground(modifier = Modifier.fillMaxSize())
+            LazyColumn(
+                contentPadding = PaddingValues(
+                    top = inner.calculateTopPadding(),
+                    bottom = inner.calculateBottomPadding() + 80.dp  // 为“退出”预留空间
+                ),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Transparent)
+            ) {
+                item {
+                    SectionCard {
+                        ProfileRow(
+                            avatar = userViewModel.currentUser.value?.avatar
+                                ?: "https://picsum.photos/200/300",
+                            title = userViewModel.currentUser.value?.username ?: "默认名称",
+                            subtitle = "UID@" + userViewModel.id.value,
+                            userViewModel
+                        )
+                    }
+                }
 
-        LazyColumn(
-            contentPadding = PaddingValues(
-                top = inner.calculateTopPadding(),
-                bottom = inner.calculateBottomPadding() + 80.dp  // 为“退出”预留空间
-            ),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFFF5F5F7))
-        ) {
-            item { SectionCard {
-                ProfileRow(
-                    avatar = userViewModel.currentUser.value?.avatar ?: "https://picsum.photos/200/300",
-                    title = userViewModel.currentUser.value?.username ?: "默认名称",
-                    subtitle = "UID@" + userViewModel.id.value,
-                    userViewModel
-                )
-            }}
-
-            item { SectionTitle("应用") }
-            item { SectionCard { SimpleRow("StarCommunity", "简体中文") } }
-
-
-            item { SectionTitle("讨论") }
-            item { SectionCard {
-                SimpleRow("Telegram 群组")
-                Divider(Modifier.padding(horizontal = 16.dp))
-                SimpleRow("Telegram 频道")
-            }}
+                item { SectionTitle("应用") }
+                item { SectionCard { SimpleRow("StarCommunity", "简体中文") } }
 
 
-            item { SectionTitle("其他") }
-            item { SectionCard {
-                SimpleRow("项目地址", "AGPL-3.0 开源")
-                Divider(Modifier.padding(horizontal = 16.dp))
-                SimpleRow("官方网站")
-                Divider(Modifier.padding(horizontal = 16.dp))
-                SimpleRow("引用")
-            }}
+                item { SectionTitle("讨论") }
+                item {
+                    SectionCard {
+                        SimpleRow("Telegram 群组")
+                        Divider(Modifier.padding(horizontal = 16.dp))
+                        SimpleRow("Telegram 频道")
+                    }
+                }
+
+
+                item { SectionTitle("其他") }
+                item {
+                    SectionCard {
+                        SimpleRow("项目地址", "AGPL-3.0 开源")
+                        Divider(Modifier.padding(horizontal = 16.dp))
+                        SimpleRow("官方网站")
+                        Divider(Modifier.padding(horizontal = 16.dp))
+                        SimpleRow("引用")
+                    }
+                }
+                item { SectionTitle("") }
+                item { SectionTitle("") }
+                item {
+                    Row(modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center) {
+                        Button(
+                            onClick = onLogout,
+                            modifier = Modifier
+                                .fillMaxWidth(0.9f)
+                                .height(64.dp)
+                                .padding(bottom = 24.dp),
+                            shape = RoundedCornerShape(24.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        ) {
+                            Text("退出登录", color = Color.White)
+                        }
+                    }
+                }
+            }
+
+
+
         }
-        Button(
-            onClick = onLogout,
-            modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .height(48.dp)
-                .padding(bottom = 24.dp),
-            shape = RoundedCornerShape(24.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-        ) {
-            Text("退出登录", color = Color.White)
-        }
-
-
     }
 }
 

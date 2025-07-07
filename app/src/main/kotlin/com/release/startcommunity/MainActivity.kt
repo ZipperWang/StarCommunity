@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.*
@@ -47,6 +48,7 @@ import com.release.startcommunity.view.HyperOSBackground
 import com.release.startcommunity.view.LoginScreen
 import com.release.startcommunity.view.PostDetailScreen
 import com.release.startcommunity.view.PostListScreen
+import com.release.startcommunity.view.ShaderBackground
 import com.release.startcommunity.viewmodel.PostViewModel
 import com.release.startcommunity.viewmodel.UserViewModel
 import kotlinx.coroutines.delay
@@ -54,7 +56,7 @@ import kotlinx.coroutines.launch
 
 
 class MainActivity : ComponentActivity() {
-    @RequiresApi(Build.VERSION_CODES.S)
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -62,7 +64,6 @@ class MainActivity : ComponentActivity() {
         window.statusBarColor = android.graphics.Color.TRANSPARENT
         setContent {
             StartCommunityTheme(dynamicColor = false) {
-
                 Application()
             }
         }
@@ -73,7 +74,7 @@ class MainActivity : ComponentActivity() {
 
 
 @SuppressLint("StateFlowValueCalledInComposition")
-@RequiresApi(Build.VERSION_CODES.S)
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class,
     ExperimentalAnimationApi::class
 )
@@ -183,16 +184,24 @@ fun Application(){
                                                     content,
                                                     userViewModel
                                                 )
+                                                postsViewModel.loadComments(postId) {
+                                                    selectedPost = it
+                                                }
                                             }
                                         )
                                     }
                             }
                         }
-
                         1 -> {
+                            Box(modifier = Modifier.fillMaxSize()){
+                                ShaderBackground(modifier = Modifier.fillMaxSize())
+                            }
+                        }
+
+                        3 -> {
                             if (!loggedIn) {
                                 // 登录
-                                HyperOSBackground {
+                               //ShaderBackground()
                                     LoginScreen(
                                         onLogin = { username, password ->
                                             userViewModel.loginUser(username, password)
@@ -206,19 +215,19 @@ fun Application(){
                                             )
                                         }
                                     )
-                                }
+
                             } else {
                                 // 用户信息
-                                AboutScreen(
-                                    onTabChange = { selectedTab = it },
-                                    onToggleTheme = {
-                                        // TODO: 切换主题
-                                    },
-                                    onLogout = {
-                                        userViewModel.logoutUser()
-                                    },
-                                    userViewModel = userViewModel
-                                )
+                                    AboutScreen(
+                                        onTabChange = { selectedTab = it },
+                                        onToggleTheme = {
+                                            // TODO: 切换主题
+                                        },
+                                        onLogout = {
+                                            userViewModel.logoutUser()
+                                        },
+                                        userViewModel = userViewModel
+                                    )
                             }
                         }
                     }
@@ -234,6 +243,8 @@ fun GlassNavigationBar(
 ) {
     val items = listOf(
         Icons.Default.Home      to "首页",
+        Icons.Default.Star      to "板块",
+        Icons.Default.Message      to "消息",
         Icons.Default.Person    to "我的"
     )
 

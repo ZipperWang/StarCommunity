@@ -153,7 +153,7 @@ fun PostListScreen(
                             reverseLayout = false,
                             userScrollEnabled = true
                         ) {
-                            items(posts, key = { it.id }) { post ->
+                            items(posts, key = { it.id  }) { post ->
                                 PostCard(post = post, onClick = { onPostClick(post) })
                             }
                         }
@@ -296,6 +296,10 @@ fun PostDetailScreen(
     showCommentBar: Boolean,
     onSubmitComment: (Long, String) -> Unit
 ) {
+
+    LaunchedEffect(post.comments) {
+        Log.d("PostDetailScreen更新了", "comments: ${post.comments}")
+    }
     val ui = rememberSystemUiController()
     val barColor = Color.White
     var commentText by remember { mutableStateOf("") }
@@ -375,101 +379,83 @@ fun PostDetailScreen(
                     ) {
                         Text("发送")
                     }
+
                 }
 
                 }
             }
         }
     ) { innerPadding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .padding(innerPadding)
                 .padding(16.dp)
-                .verticalScroll(rememberScrollState())
                 .fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 96.dp), // 为底部评论栏预留空间
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            /** ---------- 作者信息 ---------- **/
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(post. user.avatar)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = "avatar",
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape),
-                    contentScale = ContentScale.Crop,
-                )
-                Spacer(Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = post.user.username,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            // 作者信息
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(post.user.avatar)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = "avatar",
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop,
                     )
-                    Text(
-                        text = post.timestamp.format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm")),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = post.user.username,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        )
+                        Text(
+                            text = post.timestamp.format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm")),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline,
+                        )
+                    }
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
-
-            Text(
-                text = post.content,
-                style = MaterialTheme.typography.bodyLarge,
-                lineHeight = 22.sp,
-            )
-
-
-//            if (!post.images.isNullOrEmpty()) {
-//                Spacer(Modifier.height(12.dp))
-//                LazyRow(
-//                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-//                ) {
-//                    items(post.images.size) { index ->
-//                        AsyncImage(
-//                            model = post.images[index],
-//                            contentDescription = "post image",
-//                            contentScale = ContentScale.Crop,
-//                            modifier = Modifier
-//                                .size(220.dp)
-//                                .clip(RoundedCornerShape(12.dp)),
-//                        )
-//                    }
-//                }
-//            }
-
-            /** ---------- 点赞 / 评论 ---------- **/
-            Spacer(Modifier.height(16.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(24.dp),
-            ) {
-                InteractionItem(
-                    icon = Icons.Rounded.FavoriteBorder,
-                    count = post.likes,
-                )
-                InteractionItem(
-                    icon = Icons.Rounded.ChatBubbleOutline,
-                    count = post.comments.size,
+            // 正文内容
+            item {
+                Text(
+                    text = post.content,
+                    style = MaterialTheme.typography.bodyLarge,
+                    lineHeight = 22.sp,
                 )
             }
 
-            /** ---------- 评论列表 ---------- **/
-            Log.d("post", "id:${post.id} comments: ${post.comments}")
+            // 点赞评论行
+            item {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(24.dp),
+                ) {
+                    InteractionItem(
+                        icon = Icons.Rounded.FavoriteBorder,
+                        count = post.likes,
+                    )
+                    // ... 其他按钮
+                }
+            }
+
+            // 评论标题
             if (post.comments.isNotEmpty()) {
-                Spacer(Modifier.height(24.dp))
-                Text(
-                    text = "评论 (${post.comments.size})",
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Spacer(Modifier.height(8.dp))
-                post.comments.forEach { comment ->
+                item {
+                    Text(
+                        text = "评论 (${post.comments.size})",
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                }
+
+                items(post.comments, key = { it.id }) { comment ->
                     CommentCard(commenter = comment.user.username, text = comment.comment)
                 }
             }

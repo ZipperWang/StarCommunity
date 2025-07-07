@@ -108,7 +108,6 @@ class PostViewModel : ViewModel() {
                 val created = ApiClient.api.postComment(
                     CreateCommentRequest(postId, userViewModel.currentUser.value!!, content)
                 )
-                loadComments(postId)
 
             } catch (e: Exception) {
                 Log.e("PostVM", "发帖失败", e)
@@ -116,17 +115,20 @@ class PostViewModel : ViewModel() {
         }
     }
 
-    fun loadComments(postId: Long): List<Comment> {
+    fun loadComments(postId: Long, onPostLoaded: (Post) -> Unit) {
         viewModelScope.launch {
             try {
                 val index = _posts.indexOfFirst { it.id == postId }
-                val comments = ApiClient.api.getComments(postId)
-                Log.d("PostVM", "${index}id:${_posts[index].id}加载评论成功$comments")
-                _posts[index].copy(comments = comments)
+                if (index != -1) {
+                    val comments = ApiClient.api.getComments(postId)
+                    Log.d("PostVM", "${index}id:${_posts[index].id}加载评论成功$comments")
+                    val updatePost = _posts[index].copy(comments = comments)
+                    onPostLoaded(updatePost)
+
+                }
             } catch (e: Exception) {
                 Log.e("PostVM", "获取评论失败", e)
             }
         }
-        return emptyList()
     }
 }

@@ -7,25 +7,35 @@
 
 package com.release.startcommunity.view
 
+import android.graphics.RuntimeShader
 import android.graphics.Shader
+import android.opengl.GLSurfaceView
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.PageSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import com.release.startcommunity.tool.BackGLRender
+import java.io.BufferedReader
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
 /* ────────────── 公开入口 ────────────── */
+
+
 
 @RequiresApi(Build.VERSION_CODES.S)
 @Composable

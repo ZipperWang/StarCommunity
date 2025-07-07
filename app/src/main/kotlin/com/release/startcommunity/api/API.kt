@@ -1,5 +1,6 @@
 package com.release.startcommunity.api
 
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.release.startcommunity.model.Comment
 import com.release.startcommunity.model.Post
 import com.release.startcommunity.model.User
@@ -35,7 +36,7 @@ interface PostApiService {
     suspend fun likePost(@Path("id") postId: Long): Int
 
     @GET("comments/post/{postId}")
-    suspend fun getComments(@Path("postId") postId: Long): List<Comment>
+    suspend fun getComments(@Path("postId") postId: Long): SnapshotStateList<Comment>
 
     @POST("comments")
     suspend fun postComment(@Body comment: CreateCommentRequest): Response<Comment>
