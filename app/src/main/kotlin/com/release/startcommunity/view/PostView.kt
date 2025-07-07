@@ -456,7 +456,7 @@ fun PostDetailScreen(
                 }
 
                 items(post.comments, key = { it.id }) { comment ->
-                    CommentCard(commenter = comment.user.username, text = comment.comment)
+                    CommentCard(commenter = comment.user.username, text = comment.content)
                 }
             }
         }

@@ -100,17 +100,32 @@ class PostViewModel : ViewModel() {
         }
     }
 
-    fun createComment(postId: Long, content: String, userViewModel: UserViewModel) {
+    fun createComment(
+        postId: Long,
+        content: String,
+        user: User?,
+        onCommentCreated: (comment: Comment) -> Unit
+    ) {
+        if (user == null) {
+            Log.w("PostVM", "用户未登录，无法发表评论")
+            return
+        }
+
         viewModelScope.launch {
-
-
             try {
-                val created = ApiClient.api.postComment(
-                    CreateCommentRequest(postId, userViewModel.currentUser.value!!, content)
+                val response = ApiClient.api.postComment(
+                    CreateCommentRequest(postId, user, content)
                 )
 
+                val comment = response.body()
+                if (comment != null) {
+                    onCommentCreated(comment)
+                    Log.d("PostVM", "创建评论成功：$comment")
+                } else {
+                    Log.e("PostVM", "评论创建失败，响应为空")
+                }
             } catch (e: Exception) {
-                Log.e("PostVM", "发帖失败", e)
+                Log.e("PostVM", "创建评论异常", e)
             }
         }
     }
