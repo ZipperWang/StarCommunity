@@ -31,27 +31,24 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
+
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.compose.*
+
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.release.startcommunity.api.ApiClient
 import com.release.startcommunity.model.Post
 import com.release.startcommunity.ui.theme.StartCommunityTheme
 import com.release.startcommunity.view.AboutScreen
-import com.release.startcommunity.view.HyperOSBackground
 import com.release.startcommunity.view.LoginScreen
 import com.release.startcommunity.view.PostDetailScreen
 import com.release.startcommunity.view.PostListScreen
 import com.release.startcommunity.view.ShaderBackground
 import com.release.startcommunity.viewmodel.PostViewModel
 import com.release.startcommunity.viewmodel.UserViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 
@@ -172,23 +169,43 @@ fun Application(){
                                             animationSpec = tween(350, easing = FastOutSlowInEasing)
                                         ) + fadeOut(tween(350))
                                     ) {
-                                        PostDetailScreen(
-                                            post = selectedPost!!,
-                                            onBack = {
-                                                showDetails = false
-                                            },
-                                            showCommentBar = showCommentBar,
-                                            onSubmitComment = {postId, content ->
-                                                postsViewModel.createComment(
-                                                    postId,
-                                                    content,
-                                                    userViewModel
-                                                )
-                                                postsViewModel.loadComments(postId) {
-                                                    selectedPost = it
+//                                        PostDetailScreen(
+//                                            post = selectedPost!!,
+//                                            onBack = {
+//                                                showDetails = false
+//                                            },
+//                                            showCommentBar = showCommentBar,
+//                                            onSubmitComment = {postId, content ->
+//                                                postsViewModel.createComment(
+//                                                    postId,
+//                                                    content,
+//                                                    userViewModel.currentUser.value,
+//                                                    onCommentCreated = {
+//                                                        selectedPost = selectedPost?.copy(comments = selectedPost!!.comments + it)
+//                                                    }
+//                                                )
+////                                                postsViewModel.loadComments(postId) {
+////                                                    selectedPost = it
+////                                                }
+//                                            }
+//                                        )
+                                        selectedPost?.let { post ->
+                                            PostDetailScreen(
+                                                post = post,
+                                                onBack = { showDetails = false },
+                                                showCommentBar = showCommentBar,
+                                                onSubmitComment = { postId, content ->
+                                                    postsViewModel.createComment(
+                                                        postId,
+                                                        content,
+                                                        userViewModel.currentUser.value,
+                                                        onCommentCreated = { comment ->
+                                                            selectedPost = post.copy(comments = post.comments + comment)
+                                                        }
+                                                    )
                                                 }
-                                            }
-                                        )
+                                            )
+                                        }
                                     }
                             }
                         }

@@ -10,6 +10,6 @@ data class Post(
     val content: String,
     val user: User,
     val likes: Int = 0,
-    val comments: SnapshotStateList<Comment> = mutableStateListOf(),
+    val comments: List<Comment> = emptyList(),
     val timestamp: String
 )
