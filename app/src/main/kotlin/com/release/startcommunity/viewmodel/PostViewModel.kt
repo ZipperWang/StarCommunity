@@ -15,13 +15,18 @@ import kotlinx.coroutines.flow.stateIn
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import com.release.startcommunity.api.CreateCommentRequest
 import com.release.startcommunity.model.Comment
 import com.release.startcommunity.model.User
+import com.release.startcommunity.model.Event
 
 class PostViewModel : ViewModel() {
 
     /* ---------------- 数据流 ---------------- */
+    private val _toastMessage = MutableLiveData<Event<String>>()        //Toast动态数据
+    val toastMessage: LiveData<Event<String>> = _toastMessage
 
     private val _posts = mutableStateListOf<Post>()        // 用 StateList 追加更省事
     val posts: SnapshotStateList<Post> = _posts
@@ -32,7 +37,7 @@ class PostViewModel : ViewModel() {
     private val postsFlow = snapshotFlow { posts.toList() }
 
     private val _query  = MutableStateFlow("")
-    val   query:  StateFlow<String> = _query
+    val query:  StateFlow<String> = _query
 
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading
@@ -66,7 +71,14 @@ class PostViewModel : ViewModel() {
     /* ---------------- 加载下一页 ---------------- */
 
     fun loadMore() {
-        if (_loading.value || _reachEnd.value) return      // 已在加载或到底
+        if (_loading.value) {        //正在加载中
+            _toastMessage.postValue(Event("加载中......"))
+            return
+        }
+        if (_reachEnd.value) {        //加载已到底
+            _toastMessage.postValue(Event("已经到底了"))
+            return
+        }
         viewModelScope.launch {
             _loading.value = true
             try {
@@ -74,8 +86,10 @@ class PostViewModel : ViewModel() {
                 _posts.addAll(resp.content)
                 _reachEnd.value = resp.number + 1 >= resp.totalPages
                 if (!_reachEnd.value) page++
+                _toastMessage.postValue(Event("加载成功！当前页${page + 1}"))
             } catch (e: Exception) {
                 Log.e("PostVM", "加载失败", e)
+                _toastMessage.postValue(Event("加载失败！${e.message}"))
             } finally {
                 _loading.value = false
             }
@@ -88,14 +102,17 @@ class PostViewModel : ViewModel() {
         viewModelScope.launch {
             if (userId < 0L) {
                 Log.e("PostVM", "用户ID错误")
+                _toastMessage.postValue(Event("用户ID错误！"))
             }
             try {
                 val created = ApiClient.api.createPost(
                     CreatePostRequest(title, content, userId)
                 )
-                _posts.add(0, created)          // 直接插到列表顶部
+                _posts.add(0, created) // 直接插到列表顶部
+                _toastMessage.postValue(Event("发帖成功！"))
             } catch (e: Exception) {
                 Log.e("PostVM", "发帖失败", e)
+                _toastMessage.postValue(Event("发帖失败！${e.message}"))
             }
         }
     }
@@ -108,6 +125,7 @@ class PostViewModel : ViewModel() {
     ) {
         if (user == null) {
             Log.w("PostVM", "用户未登录，无法发表评论")
+            _toastMessage.postValue(Event("用户未登录，无法发表评论！"))
             return
         }
 
@@ -121,11 +139,14 @@ class PostViewModel : ViewModel() {
                 if (comment != null) {
                     onCommentCreated(comment)
                     Log.d("PostVM", "创建评论成功：$comment")
+                    _toastMessage.postValue(Event("发表评论成功！"))
                 } else {
                     Log.e("PostVM", "评论创建失败，响应为空")
+                    _toastMessage.postValue(Event("不能发表空评论"))
                 }
             } catch (e: Exception) {
                 Log.e("PostVM", "创建评论异常", e)
+                _toastMessage.postValue(Event("发表评论失败！${e.message}"))
             }
         }
     }
@@ -137,12 +158,13 @@ class PostViewModel : ViewModel() {
                 if (index != -1) {
                     val comments = ApiClient.api.getComments(postId)
                     Log.d("PostVM", "${index}id:${_posts[index].id}加载评论成功$comments")
+                    _toastMessage.postValue(Event("加载评论成功！"))
                     val updatePost = _posts[index].copy(comments = comments)
                     onPostLoaded(updatePost)
-
                 }
             } catch (e: Exception) {
                 Log.e("PostVM", "获取评论失败", e)
+                _toastMessage.postValue(Event("获取评论失败${e.message}"))
             }
         }
     }

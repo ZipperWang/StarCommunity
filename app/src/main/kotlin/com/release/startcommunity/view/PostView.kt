@@ -13,7 +13,6 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -181,7 +180,6 @@ fun PostListScreen(
                     onBack = { showCreatePage = false },
                     userViewModel = userViewModel
                 )
-
             }
         }
     }

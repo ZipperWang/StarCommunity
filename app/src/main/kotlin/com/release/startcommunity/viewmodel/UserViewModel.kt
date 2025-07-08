@@ -6,9 +6,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
-import androidx.lifecycle.ViewModel
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.State
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.release.startcommunity.SecureStore
@@ -19,23 +16,24 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.ByteArrayOutputStream
 import androidx.core.graphics.scale
-import com.release.startcommunity.api.EmailRequest
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import com.release.startcommunity.api.RegisterRequest
+import com.release.startcommunity.model.Event
 
 
 class UserViewModel(private val app: Application): AndroidViewModel(app) {
 
-
     private val _loggedIn = MutableStateFlow<Boolean>(false)
     val loggedIn: StateFlow<Boolean> = _loggedIn
+
+    private val _toastMessage = MutableLiveData<Event<String>>()        //Toast动态数据
+    val toastMessage: LiveData<Event<String>> = _toastMessage
 
 
         init{
@@ -61,6 +59,7 @@ class UserViewModel(private val app: Application): AndroidViewModel(app) {
                 _users.value = ApiClient.api.getUsers()
             } catch (e: Exception) {
                 _errorMessage.value = "用户加载失败: ${e.message}"
+
             }
         }
     }
@@ -100,8 +99,10 @@ class UserViewModel(private val app: Application): AndroidViewModel(app) {
                 _errorMessage.value = null
                 _loggedIn.value = true
                 SecureStore.save(app, username, password)
+                _toastMessage.postValue(Event("登陆成功！"))
             }catch (e: Exception){
                 _errorMessage.value = "登录失败: ${e.message}"
+                _toastMessage.postValue(Event("登陆失败！"))
             }
 
         }
@@ -120,16 +121,16 @@ class UserViewModel(private val app: Application): AndroidViewModel(app) {
                     try {
                         val newUser = ApiClient.api.registerUser(user)
                         _currentUser.value = newUser.body()
+                        _toastMessage.postValue(Event("注册成功！"))
                     }catch (e: Exception){
                         Log.e("Register", "注册失败[内]: ${e.message}")
+                        _toastMessage.postValue(Event("注册失败！${e.message}"))
                     }
-
-
-
                 }
             } catch (e: Exception) {
                 _errorMessage.value = "注册失败: ${e.message}"
                 Log.e("Register", "注册失败: ${e.message}")
+                _toastMessage.postValue(Event("注册失败！${e.message}"))
             }
         }
     }
@@ -139,9 +140,9 @@ class UserViewModel(private val app: Application): AndroidViewModel(app) {
             try {
                 val res = ApiClient.api.sendCode(email)
                 _errorMessage.value = null
+                _toastMessage.postValue(Event("验证码发送成功！"))
             } catch (e: Exception) {
                 _errorMessage.value = "发送验证码失败: ${e.message}"
-                Log.e("SendCode", "发送失败: ${e.message}")
             }
         }
     }
@@ -149,9 +150,8 @@ class UserViewModel(private val app: Application): AndroidViewModel(app) {
     fun verifyCode(email: String, code: String) {
         viewModelScope.launch {
             try {
-
-
                 _errorMessage.value = null
+                _toastMessage.postValue(Event("验证码验证成功！"))
             } catch (e: Exception) {
                 _errorMessage.value = "验证码验证失败: ${e.message}"
             }
@@ -165,8 +165,10 @@ class UserViewModel(private val app: Application): AndroidViewModel(app) {
                 _currentUser.value = null
                 _loggedIn.value = false
                 SecureStore.clear(app)
+                _toastMessage.postValue(Event("登出成功！"))
             } catch (e: Exception) {
                 _errorMessage.value = "登出失败: ${e.message}"
+                _toastMessage.postValue(Event("登出失败！${e.message}"))
             }
         }
     }
@@ -183,11 +185,14 @@ class UserViewModel(private val app: Application): AndroidViewModel(app) {
                 if (response.isSuccessful) {
                     val avatarUrl = response.body()?.avatarUrl
                     _currentUser.value = _currentUser.value?.copy(avatar = avatarUrl.toString())
+                    _toastMessage.postValue(Event("更改头像成功！"))
                 } else {
                     Log.e("Upload", "上传失败: ${response.code()}")
+                    _toastMessage.postValue(Event("更改头像失败！"))
                 }
             } catch (e: Exception) {
                 Log.e("Upload", "异常: ${e.message}")
+                _toastMessage.postValue(Event("更改头像发生异常${e.message}"))
             }
         }
     }

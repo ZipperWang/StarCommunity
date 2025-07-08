@@ -7,6 +7,7 @@ import android.graphics.Shader
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -36,6 +37,10 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
@@ -52,7 +57,12 @@ import com.release.startcommunity.viewmodel.UserViewModel
 import kotlinx.coroutines.launch
 
 
+
 class MainActivity : ComponentActivity() {
+
+    private lateinit var viewModelOfPostView: PostViewModel
+    private lateinit var viewModelOfUserView: UserViewModel
+
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,6 +74,23 @@ class MainActivity : ComponentActivity() {
                 Application()
             }
         }
+        viewModelOfPostView = ViewModelProvider(this).get(PostViewModel::class.java)
+        viewModelOfUserView = ViewModelProvider(this).get(UserViewModel::class.java)
+        setupObservers()
+    }
+
+    private fun setupObservers() {        //在Activity中创建Event监听器
+
+        viewModelOfPostView.toastMessage.observe(this){        //监听Post-Toast-LiveData
+            event -> event.getContentIfNotHandled()?.let { message ->  showToast(message)}
+        }
+        viewModelOfUserView.toastMessage.observe(this){        //监听User-Toast-LiveData
+                event -> event.getContentIfNotHandled()?.let { message ->  showToast(message)}
+        }
+    }
+
+    private fun showToast(message: String) {        //创建Toast
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
 }
 
@@ -85,6 +112,7 @@ fun Application(){
     var showDetails by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val sysUi = rememberSystemUiController()
+
     LaunchedEffect(Unit) {
         sysUi.setSystemBarsColor(
             color = Color.Transparent,
