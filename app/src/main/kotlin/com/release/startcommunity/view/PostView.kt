@@ -413,7 +413,7 @@ fun PostDetailScreen(
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         )
                         Text(
-                            text = post.timestamp.format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm")),
+                            text = Tool.run { yieldPostTime(countGapFromNow(post.timestamp)) },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.outline,
                         )

@@ -13,7 +13,7 @@
       "attributes": [],
       "versionCode": 1,
       "versionName": "1.0",
-      "outputFile": "StarCommunity-release-1.0-20250705_165256.apk"
+      "outputFile": "StarCommunity-release-1.0-20250708_142315.apk"
     }
   ],
   "elementType": "File",
@@ -22,14 +22,14 @@
       "minApi": 28,
       "maxApi": 30,
       "baselineProfiles": [
-        "baselineProfiles/1/StarCommunity-release-1.0-20250705_165256.dm"
+        "baselineProfiles/1/StarCommunity-release-1.0-20250708_142315.dm"
       ]
     },
     {
       "minApi": 31,
       "maxApi": 2147483647,
       "baselineProfiles": [
-        "baselineProfiles/0/StarCommunity-release-1.0-20250705_165256.dm"
+        "baselineProfiles/0/StarCommunity-release-1.0-20250708_142315.dm"
       ]
     }
   ],
