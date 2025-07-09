@@ -18,6 +18,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.release.startcommunity.api.CreateCommentRequest
+import com.release.startcommunity.api.LikeRequest
 import com.release.startcommunity.model.Comment
 import com.release.startcommunity.model.User
 import com.release.startcommunity.model.Event
@@ -165,6 +166,22 @@ class PostViewModel : ViewModel() {
             } catch (e: Exception) {
                 Log.e("PostVM", "获取评论失败", e)
                 _toastMessage.postValue(Event("获取评论失败${e.message}"))
+            }
+        }
+    }
+
+    fun likePost(postId: Long,userId: Long) {
+        viewModelScope.launch {
+            try {
+                Log.d("PostVM", "开始点赞")
+                val response = ApiClient.api.likePost(postId, LikeRequest(userId))
+                if (response.isSuccessful) {
+                    val updatedPost = response.body()
+                    Log.d("PostVM", "点赞成功：$updatedPost")
+                }
+            }catch (e: Exception) {
+                Log.e("PostVM", "点赞失败", e)
+                _toastMessage.postValue(Event("点赞失败${e.message}"))
             }
         }
     }

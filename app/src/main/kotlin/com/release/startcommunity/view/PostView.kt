@@ -153,7 +153,7 @@ fun PostListScreen(
                             userScrollEnabled = true
                         ) {
                             items(posts, key = { it.id  }) { post ->
-                                PostCard(post = post, onClick = { onPostClick(post) })
+                                PostCard(post = post, onClick = { onPostClick(post) }, postViewModel = viewModel, userViewModel)
                             }
                         }
                     }
@@ -212,7 +212,9 @@ fun M3SearchBar(
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun PostCard(post: Post,
-             onClick: () -> Unit
+             onClick: () -> Unit,
+             postViewModel: PostViewModel,
+             userViewModel: UserViewModel
 ) {
     val interactionSource = remember { MutableInteractionSource() }
 
@@ -277,7 +279,12 @@ fun PostCard(post: Post,
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Icon(Icons.Default.FavoriteBorder, contentDescription = null)
+                    Icon(
+                        imageVector = Icons.Default.FavoriteBorder,
+                        contentDescription = null,
+                        modifier = Modifier.clickable {
+                            postViewModel.likePost(post.id, userViewModel.id.value)
+                        })
                     Text(text = "${post.likes}")
                     Icon(Icons.Default.ChatBubbleOutline, contentDescription = null)
                     Text(text = "${post.comments.size}")

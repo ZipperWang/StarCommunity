@@ -37,18 +37,23 @@ interface PostApiService {
     @POST("posts")
     suspend fun createPost(@Body request: CreatePostRequest): Post
 
+
+    // 点赞接口
     @POST("likes/{targetId}")
-    suspend fun likePost(@Path("targetId") targetId: Long,
-                         @Body userId: Long): Response<Boolean>
+    suspend fun likePost(@Path("targetId") targetId: Long, @Body request: LikeRequest): Response<Boolean>
 
+    // 取消点赞接口
     @DELETE("likes/{targetId}")
-    suspend fun unlikePost(@Path("targetId") targetId: Long, @Body userId: Long): Response<Boolean>
+    suspend fun unlikePost(@Path("targetId") targetId: Long, @Body request: LikeRequest): Response<Boolean>
 
+    // 获取点赞数接口
     @GET("likes/{targetId}/count")
     suspend fun getLikeCount(@Path("targetId") targetId: Long): Response<Long>
 
+    // 检查是否已点赞接口
     @GET("likes/{targetId}/status")
-    suspend fun hasLiked(@Path("targetId") targetId: Long, @Body userId: Long): Response<Boolean>
+    suspend fun hasLiked(@Path("targetId") targetId: Long, @Query("userId") userId: Long): Response<Boolean>
+
 
 
     //用户区接口
@@ -125,6 +130,7 @@ data class LoginRequest(val username: String, val password: String)
 data class RegisterRequest(val username: String, val password: String, val email: String)
 data class EmailRequest(val email: String, val code: String)
 data class TokenResponse(val token: String, val userId: Long)
+data class LikeRequest(val userId: Long)
 data class PageResponse<T>(
     val content: List<T>,
     val number: Int,
