@@ -394,6 +394,8 @@ fun PostDetailScreen(
         ) {
             // 作者信息
             item {
+
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)

@@ -15,38 +15,43 @@ import retrofit2.converter.scalars.ScalarsConverterFactory
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.Field
+import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
-import retrofit2.http.FormUrlEncoded
-import kotlin.getValue
 
 
 interface PostApiService {
-    @GET("posts")
-    suspend fun getPosts(): List<Post>
+
+
+    //帖子区接口
+    @GET("posts/paged")
+    suspend fun getPostsPaged(
+        @Query("page") page: Int,
+        @Query("size") size: Int = 10
+    ): PageResponse<Post>   // 用后端 Page<PostDTO>
 
     @POST("posts")
     suspend fun createPost(@Body request: CreatePostRequest): Post
 
-    @POST("posts/{id}/like")
-    suspend fun likePost(@Path("id") postId: Long): Int
+    @POST("likes/{targetId}")
+    suspend fun likePost(@Path("targetId") targetId: Long,
+                         @Body userId: Long): Response<Boolean>
 
-    @GET("comments/post/{postId}")
-    suspend fun getComments(@Path("postId") postId: Long): SnapshotStateList<Comment>
+    @DELETE("likes/{targetId}")
+    suspend fun unlikePost(@Path("targetId") targetId: Long, @Body userId: Long): Response<Boolean>
 
-    @POST("comments")
-    suspend fun postComment(@Body comment: CreateCommentRequest): Response<Comment>
+    @GET("likes/{targetId}/count")
+    suspend fun getLikeCount(@Path("targetId") targetId: Long): Response<Long>
 
-    @DELETE("comments/{commentId}")
-    suspend fun deleteComment(@Path("commentId") commentId: Long): Response<Unit>
+    @GET("likes/{targetId}/status")
+    suspend fun hasLiked(@Path("targetId") targetId: Long, @Body userId: Long): Response<Boolean>
 
-    @POST("comments/{commentId}/like")
-    suspend fun likeComment(@Path("commentId") commentId: Long): Comment
 
+    //用户区接口
     @GET("users")
     suspend fun getUsers(): List<User>
 
@@ -58,12 +63,6 @@ interface PostApiService {
 
     @POST("users/login")
     suspend fun login(@Body request: LoginRequest): TokenResponse
-
-    @GET("posts/paged")
-    suspend fun getPostsPaged(
-        @Query("page") page: Int,
-        @Query("size") size: Int = 10
-    ): PageResponse<Post>   // 用后端 Page<PostDTO>
 
     @Multipart
     @POST("users/{id}/avatar")
@@ -80,9 +79,24 @@ interface PostApiService {
     @POST("auth/verify")
     suspend fun verifyCode(@Field("email") email: String,
                            @Field("code") code: String): Response<String>
+
+
+
+
+    //评论区接口
+    @GET("comments/post/{postId}")
+    suspend fun getComments(@Path("postId") postId: Long): List<Comment>
+
+    @POST("comments")
+    suspend fun postComment(@Body comment: CreateCommentRequest): Response<Comment>
+
+    @DELETE("comments/{commentId}")
+    suspend fun deleteComment(@Path("commentId") commentId: Long): Response<Unit>
+
+
 }
 object ApiClient {
-    private const val BASE_URL = "http://47.121.204.76:8080/"
+    private const val BASE_URL = "http://api.starcommunity.asia:54321/"
 
     val basicAuthInterceptor = Interceptor { chain ->
         val credentials = Credentials.basic("admin", "123456")
