@@ -1,6 +1,8 @@
 package com.release.startcommunity.view
 
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.tween
@@ -35,7 +37,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.release.startcommunity.model.Post
@@ -52,24 +53,24 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.rounded.ChatBubbleOutline
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.navigation.NavController
 import coil.request.ImageRequest
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import com.halilibo.richtext.commonmark.Markdown
+import com.halilibo.richtext.ui.material3.RichText
 import com.release.startcommunity.api.CreatePostRequest
-import com.release.startcommunity.model.User
+import com.release.startcommunity.tool.NavigationLogics
 import com.release.startcommunity.viewmodel.UserViewModel
-import java.time.format.DateTimeFormatter
 
+
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalAnimationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun PostListScreen(
@@ -172,13 +173,13 @@ fun PostListScreen(
                 ),
                 modifier = Modifier.fillMaxSize()
             ) {
-                PostCreateScreen(
-                    onSubmit = {
+                NavigationLogics().NavLogic_CreatePost(
+                    bundleOnSubmit = {
                         viewModel.addPost(it.title, it.content, userViewModel.id.value)
                         showCreatePage = false
                     },
-                    onBack = { showCreatePage = false },
-                    userViewModel = userViewModel
+                    bundleOnBack = { showCreatePage = false },
+                    bundleUserViewModel = userViewModel,
                 )
             }
         }
@@ -432,11 +433,10 @@ fun PostDetailScreen(
 
             // 正文内容
             item {
-                Text(
-                    text = post.content,
-                    style = MaterialTheme.typography.bodyLarge,
-                    lineHeight = 22.sp,
-                )
+                RichText(
+                    modifier = Modifier.background(color = Color.White)) {
+                    Markdown(post.content)
+                }
             }
 
             // 点赞评论行
@@ -471,7 +471,6 @@ fun PostDetailScreen(
 }
 
 /* ----------------- 可复用小组件 ----------------- */
-
 @Composable
 private fun InteractionItem(icon: ImageVector, count: Int) {
     Row(
@@ -499,15 +498,27 @@ private fun CommentCard(commenter: String, text: String) {
     Spacer(Modifier.height(8.dp))
 }
 
+
+
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PostCreateScreen(
     onSubmit: (CreatePostRequest) -> Unit,
     onBack: () -> Unit,
-    userViewModel: UserViewModel
+    userViewModel: UserViewModel,
+    navController: NavController,
+    insertValueContent: String? = null,
+    insertValueTitle: String? = null
 ) {
     var title by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
+    if (insertValueContent != null) {
+        content = insertValueContent
+    }
+    if (insertValueTitle != null) {
+        title = insertValueTitle
+    }
 
     Scaffold(
         topBar = {
@@ -547,10 +558,18 @@ fun PostCreateScreen(
             Spacer(modifier = Modifier.height(24.dp))
             Button(
                 onClick = {
+                          navController.navigate("RichTextEdit/$content/$title")
+                          },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("富文本编辑")
+            }
+            Button(
+                onClick = {
                     val post = CreatePostRequest(title, content, userViewModel.id.value)
                     onSubmit(post)
                 },
-                modifier = Modifier.align(Alignment.End)
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Text("发布")
             }

@@ -37,10 +37,7 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
@@ -56,8 +53,6 @@ import com.release.startcommunity.viewmodel.PostViewModel
 import com.release.startcommunity.viewmodel.UserViewModel
 import kotlinx.coroutines.launch
 
-
-
 class MainActivity : ComponentActivity() {
 
     private lateinit var viewModelOfPostView: PostViewModel
@@ -66,6 +61,7 @@ class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         enableEdgeToEdge()
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.statusBarColor = android.graphics.Color.TRANSPARENT
@@ -74,9 +70,11 @@ class MainActivity : ComponentActivity() {
                 Application()
             }
         }
-        viewModelOfPostView = ViewModelProvider(this).get(PostViewModel::class.java)
-        viewModelOfUserView = ViewModelProvider(this).get(UserViewModel::class.java)
+
+        viewModelOfPostView = ViewModelProvider(this)[PostViewModel::class.java]
+        viewModelOfUserView = ViewModelProvider(this)[UserViewModel::class.java]
         setupObservers()
+
     }
 
     private fun setupObservers() {        //在Activity中创建Event监听器
@@ -139,8 +137,6 @@ fun Application(){
         }
     }
 
-
-
     Scaffold(
         bottomBar = {
             AnimatedVisibility(
@@ -178,9 +174,9 @@ fun Application(){
                                         showDetails = false
                                         coroutineScope.launch {
                                             val comments = ApiClient.api.getComments(it.id)
-                                            Log.d("PostVM", "加载评论成功$comments")
                                             selectedPost = it.copy(comments = comments)
                                             showDetails = true
+                                            Log.d("PostVM", "加载评论成功$comments")
                                         }
                                     },
                                     userViewModel = userViewModel

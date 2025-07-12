@@ -53,7 +53,6 @@ android {
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -63,6 +62,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.media3.common.ktx)
+    implementation(libs.androidx.constraintlayout)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -81,6 +81,10 @@ dependencies {
 
     implementation (libs.androidx.foundation)      // LazyRow 在这里
 
+    implementation(libs.androidx.navigation.fragment.ktx)
+    implementation(libs.androidx.navigation.ui.ktx)
+    implementation(libs.androidx.fragment.ktx)
+    implementation(libs.androidx.navigation.compose)
 
     // 可选：图标库
     implementation (libs.material.icons.extended)
@@ -89,4 +93,9 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
     implementation ("com.squareup.retrofit2:converter-scalars:2.9.0")
+
+    // 富文本库
+    implementation("com.halilibo.compose-richtext:richtext-ui-material3:1.0.0-alpha02")
+    implementation("com.halilibo.compose-richtext:richtext-markdown:1.0.0-alpha02")
+    implementation("com.halilibo.compose-richtext:richtext-commonmark:1.0.0-alpha02")
 }
