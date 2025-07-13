@@ -1,7 +1,7 @@
 package com.release.startcommunity.api
 
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.release.startcommunity.model.Comment
+import com.release.startcommunity.model.Message
 import com.release.startcommunity.model.Post
 import com.release.startcommunity.model.User
 import okhttp3.Credentials
@@ -99,6 +99,18 @@ interface PostApiService {
     suspend fun deleteComment(@Path("commentId") commentId: Long): Response<Unit>
 
 
+    //私信接口
+    // 发送私信消息
+    @POST("/chat/send")
+    suspend fun sendMessage(@Body request: CreateMessageRequest): Response<Unit>
+
+    // 获取历史消息
+    @GET("/chat/history")
+    suspend fun getHistory(
+        @Query("userA") userA: Long,
+        @Query("userB") userB: Long
+    ): Response<List<Message>>
+
 }
 object ApiClient {
     private const val BASE_URL = "http://api.starcommunity.asia:54321/"
@@ -128,6 +140,7 @@ data class CreatePostRequest(val title: String, val content: String, val userId:
 data class CreateCommentRequest(val postId: Long, val user: User, val content: String)
 data class LoginRequest(val username: String, val password: String)
 data class RegisterRequest(val username: String, val password: String, val email: String)
+data class CreateMessageRequest (val chatId: Long, val senderId: Long, val content: String)
 data class EmailRequest(val email: String, val code: String)
 data class TokenResponse(val token: String, val userId: Long)
 data class LikeRequest(val userId: Long)

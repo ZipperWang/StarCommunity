@@ -14,8 +14,8 @@ import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.isSystemInDarkTheme
 import com.release.startcommunity.R
-import com.release.startcommunity.view.ShaderPresets.darkPreset
-import com.release.startcommunity.view.ShaderPresets.lightPreset
+import com.release.startcommunity.tool.ShaderPresets.darkPreset
+import com.release.startcommunity.tool.ShaderPresets.lightPreset
 import java.io.BufferedReader
 import java.io.InputStreamReader
 

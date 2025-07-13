@@ -60,13 +60,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.navigation.NavController
+import androidx.compose.ui.zIndex
 import coil.request.ImageRequest
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.halilibo.richtext.commonmark.Markdown
 import com.halilibo.richtext.ui.material3.RichText
 import com.release.startcommunity.api.CreatePostRequest
-import com.release.startcommunity.tool.NavigationLogics
 import com.release.startcommunity.viewmodel.UserViewModel
 
 
@@ -85,6 +84,7 @@ fun PostListScreen(
     val hasLoadedAllData by viewModel.reachEnd.collectAsState()
     val listState = rememberLazyListState()
     var showCreatePage by remember { mutableStateOf(false) }
+    var showRichTextEditor by remember { mutableStateOf(false) }
 
 
     // 修改预加载逻辑，只在未加载所有数据时触发
@@ -173,14 +173,57 @@ fun PostListScreen(
                 ),
                 modifier = Modifier.fillMaxSize()
             ) {
-                NavigationLogics().NavLogic_CreatePost(
-                    bundleOnSubmit = {
-                        viewModel.addPost(it.title, it.content, userViewModel.id.value)
-                        showCreatePage = false
-                    },
-                    bundleOnBack = { showCreatePage = false },
-                    bundleUserViewModel = userViewModel,
-                )
+//                NavigationLogics().NavLogic_CreatePost(
+//                    bundleOnSubmit = {
+//                        viewModel.addPost(it.title, it.content, userViewModel.id.value)
+//                        showCreatePage = false
+//                    },
+//                    bundleOnBack = { showCreatePage = false },
+//                    bundleUserViewModel = userViewModel,
+//                )
+                var title by remember { mutableStateOf("") }
+                var content by remember { mutableStateOf("") }
+                Box(modifier = Modifier.fillMaxSize()) {
+                    PostCreateScreen(
+                        onSubmit = {
+                            viewModel.addPost(it.title, it.content, userViewModel.id.value)
+                            showCreatePage = false
+                        },
+                        onBack = { showCreatePage = false },
+                        userViewModel = userViewModel,
+                        onRichTextEditor = { showRichTextEditor = true },
+                        title = title,
+                        onTitle = {title = it},
+                        content = content,
+                        onContent = {content = it},
+                    )
+                    AnimatedVisibility(
+                        visible = showRichTextEditor,
+                        enter = slideInVertically(
+                            initialOffsetY = { it }, // 从底部滑入
+                            animationSpec = tween(300)
+                        ) + fadeIn(),
+                        exit = slideOutVertically(
+                            targetOffsetY = { it }, // 向底部滑出
+                            animationSpec = tween(200)
+                        ) + fadeOut(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .zIndex(1f)
+                    ) {
+                        RichTextEditorScreen(
+                            initTitle = title,
+                            initContent = content,
+                            onSubmit = {
+                                content += it
+                                showRichTextEditor = false
+                            },
+                            onBack = {
+                                showRichTextEditor = false
+                            }
+                        )
+                    }
+                }
             }
         }
     }
@@ -434,7 +477,7 @@ fun PostDetailScreen(
             // 正文内容
             item {
                 RichText(
-                    modifier = Modifier.background(color = Color.White)) {
+                    modifier = Modifier.background(color = MaterialTheme.colorScheme.background)) {
                     Markdown(post.content)
                 }
             }
@@ -507,18 +550,28 @@ fun PostCreateScreen(
     onSubmit: (CreatePostRequest) -> Unit,
     onBack: () -> Unit,
     userViewModel: UserViewModel,
-    navController: NavController,
-    insertValueContent: String? = null,
-    insertValueTitle: String? = null
+    onRichTextEditor: () -> Unit,
+    title: String,
+    onTitle: (String) -> Unit,
+    content: String,
+    onContent: (String) -> Unit,
 ) {
-    var title by remember { mutableStateOf("") }
-    var content by remember { mutableStateOf("") }
-    if (insertValueContent != null) {
-        content = insertValueContent
-    }
-    if (insertValueTitle != null) {
-        title = insertValueTitle
-    }
+
+//    if (insertValueContent != null) {
+//        content = insertValueContent
+//    }
+//
+//    val previousBackStackEntry = navController.previousBackStackEntry
+//    LaunchedEffect(previousBackStackEntry) {
+//        val result = navController
+//            .previousBackStackEntry
+//            ?.savedStateHandle
+//            ?.get<String>("editedContent")
+//        result?.let {
+//            content = it
+//            navController.previousBackStackEntry?.savedStateHandle?.remove<String>("editedContent")
+//        }
+//    }
 
     Scaffold(
         topBar = {
@@ -541,14 +594,14 @@ fun PostCreateScreen(
         ) {
             OutlinedTextField(
                 value = title,
-                onValueChange = { title = it },
+                onValueChange = onTitle,
                 label = { Text("标题") },
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(12.dp))
             OutlinedTextField(
                 value = content,
-                onValueChange = { content = it },
+                onValueChange = onContent,
                 label = { Text("内容") },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -557,9 +610,7 @@ fun PostCreateScreen(
             )
             Spacer(modifier = Modifier.height(24.dp))
             Button(
-                onClick = {
-                          navController.navigate("RichTextEdit/$content/$title")
-                          },
+                onClick = onRichTextEditor,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("富文本编辑")

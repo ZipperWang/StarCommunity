@@ -42,15 +42,19 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.release.startcommunity.api.ApiClient
+import com.release.startcommunity.model.ChatSessionSummary
 import com.release.startcommunity.model.Post
 import com.release.startcommunity.ui.theme.StartCommunityTheme
 import com.release.startcommunity.view.AboutScreen
 import com.release.startcommunity.view.LoginScreen
+import com.release.startcommunity.view.MessageListScreen
+import com.release.startcommunity.view.MessageScreen
 import com.release.startcommunity.view.PostDetailScreen
 import com.release.startcommunity.view.PostListScreen
 import com.release.startcommunity.view.ShaderBackground
 import com.release.startcommunity.viewmodel.PostViewModel
 import com.release.startcommunity.viewmodel.UserViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -236,6 +240,57 @@ fun Application(){
                         1 -> {
                             Box(modifier = Modifier.fillMaxSize()){
                                 ShaderBackground(modifier = Modifier.fillMaxSize())
+                            }
+                        }
+
+                        2 -> {
+                            var selectedSession = remember { mutableStateOf<ChatSessionSummary?>(null) }
+                            var showChat by remember { mutableStateOf(false) }
+                            val testData = listOf(
+                                ChatSessionSummary(
+                                    chatId = 1,
+                                    friendId = 2,
+                                    friendNickname = "jack",
+                                    friendAvatarUrl = "http://api.starcommunity.asia:54321/uploads/deault.jpg",
+                                    lastMessage = "这是最后一条消息",
+                                    lastTime = "2023-05-05 12:00:00"
+                                ),
+                                ChatSessionSummary(
+                                    chatId = 2,
+                                    friendId = 3,
+                                    friendNickname = "jack",
+                                    friendAvatarUrl = "http://api.starcommunity.asia:54321/uploads/deault.jpg",
+                                    lastMessage = "这是最后一条消息",
+                                    lastTime = "2023-05-05 12:00:00"
+                                )
+                            )
+                           MessageListScreen(
+                               sessionList = testData,
+                               onSessionClick = {
+                                   chatId, friendId ->
+                                   coroutineScope.launch {
+                                       delay(50)
+                                       showChat = true
+                                   }
+                               }
+                           )
+                            AnimatedVisibility(
+                                visible = selectedSession != null && showChat,
+                                enter = slideInHorizontally(
+                                    initialOffsetX = { it },
+                                    animationSpec = tween(350, easing = FastOutSlowInEasing)
+                                ) + fadeIn(tween(350)),
+                                exit = slideOutHorizontally(
+                                    targetOffsetX = { it },
+                                    animationSpec = tween(350, easing = FastOutSlowInEasing)
+                                ) + fadeOut(tween(350))
+                            ) {
+                                MessageScreen(
+                                    userId = 1,
+                                    chatId = selectedSession.value?.chatId ?: 0,
+                                    friendId = selectedSession.value?.friendId ?: 0,
+                                    onBack = {showChat = false}
+                                )
                             }
                         }
 
