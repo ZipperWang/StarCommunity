@@ -2,6 +2,7 @@ package com.release.startcommunity.view
 
 import android.os.Build
 import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -84,7 +85,17 @@ fun PostListScreen(
     val hasLoadedAllData by viewModel.reachEnd.collectAsState()
     val listState = rememberLazyListState()
     var showCreatePage by remember { mutableStateOf(false) }
+    if (showCreatePage){
+        BackHandler {
+            showCreatePage = false
+        }
+    }
     var showRichTextEditor by remember { mutableStateOf(false) }
+    if (showRichTextEditor){
+        BackHandler {
+            showRichTextEditor = false
+        }
+    }
 
 
     // 修改预加载逻辑，只在未加载所有数据时触发
