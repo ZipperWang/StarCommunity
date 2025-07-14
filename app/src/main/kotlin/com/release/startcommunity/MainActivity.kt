@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
@@ -112,6 +113,11 @@ fun Application(){
     var selectedPost by remember { mutableStateOf<Post?>(null) }
     var createPost by remember { mutableStateOf(false) }
     var showDetails by remember { mutableStateOf(false) }
+    if (showDetails){
+        BackHandler {
+            showDetails = false
+        }
+    }
     val coroutineScope = rememberCoroutineScope()
     val sysUi = rememberSystemUiController()
 
