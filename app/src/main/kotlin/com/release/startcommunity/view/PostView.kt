@@ -311,22 +311,9 @@ fun PostCard(post: Post,
 
                 Text(text = post.title, style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.height(4.dp))
-
-                Text(text = post.content, maxLines = 3) // 限制行数以减少布局复杂度
-
-//                if (!post.images.isNullOrEmpty()) {
-//                    Spacer(modifier = Modifier.height(8.dp))
-//
-//                    AsyncImage(
-//                        model = post.images.first(), // 只显示第一张图
-//                        contentDescription = "帖子图片",
-//                        modifier = Modifier
-//                            .fillMaxWidth()
-//                            .height(120.dp) // 减小图片高度一减少渲染开销
-//                            .clip(RoundedCornerShape(8.dp)),
-//                        contentScale = ContentScale.Crop
-//                    )
-//                }
+                RichText() {
+                    Markdown(Tool.truncateText(post.content, 100))
+                }
 
                 Spacer(modifier = Modifier.height(10.dp))
 

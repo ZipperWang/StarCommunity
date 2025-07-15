@@ -55,5 +55,17 @@ class Tool {
             }
             return result
         }
+
+        fun truncateText(source: String, maxLength: Int, suffix: String = "..."): String {
+            if (source.length <= maxLength) return source
+            val cutIndex = source
+                .substring(0, maxLength)
+                .lastIndexOfAny(charArrayOf(' ', '\n', '\r'))
+            return if (cutIndex > 0) {
+                source.substring(0, cutIndex).trimEnd() + suffix
+            } else {
+                source.take(maxLength) + suffix
+            }
+        }
     }
 }
