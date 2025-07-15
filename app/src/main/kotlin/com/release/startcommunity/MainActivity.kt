@@ -54,6 +54,7 @@ import com.release.startcommunity.view.PostDetailScreen
 import com.release.startcommunity.view.PostListScreen
 import com.release.startcommunity.view.ShaderBackground
 import com.release.startcommunity.viewmodel.PostViewModel
+import com.release.startcommunity.viewmodel.SessionViewModel
 import com.release.startcommunity.viewmodel.UserViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -109,6 +110,7 @@ class MainActivity : ComponentActivity() {
 fun Application(){
     val userViewModel: UserViewModel = viewModel()
     val postsViewModel: PostViewModel = viewModel()
+    val sessionViewModel: SessionViewModel = viewModel()
     var selectedTab by remember { mutableStateOf(0) }
     var selectedPost by remember { mutableStateOf<Post?>(null) }
     var createPost by remember { mutableStateOf(false) }
@@ -135,6 +137,7 @@ fun Application(){
 
     var showCommentBar by remember { mutableStateOf(false) }
 
+
     LaunchedEffect(bottomBarState.currentState, bottomBarState.targetState) {
         if (showDetails) {
             snapshotFlow { bottomBarState.isIdle }.collect { isIdle ->
@@ -146,6 +149,12 @@ fun Application(){
             showCommentBar = false
         }
     }
+
+    val userId by userViewModel.id.collectAsState()
+    LaunchedEffect(userId) {
+        sessionViewModel.updateUserId(userId)
+    }
+
 
     Scaffold(
         bottomBar = {
@@ -250,38 +259,29 @@ fun Application(){
                         }
 
                         2 -> {
-                            var selectedSession = remember { mutableStateOf<ChatSessionSummary?>(null) }
+                            val selectedSession = remember { mutableStateOf<ChatSessionSummary?>(null) }
                             var showChat by remember { mutableStateOf(false) }
-                            val testData = listOf(
-                                ChatSessionSummary(
-                                    chatId = 1,
-                                    friendId = 2,
-                                    friendNickname = "jack",
-                                    friendAvatarUrl = "http://api.starcommunity.asia:54321/uploads/deault.jpg",
-                                    lastMessage = "这是最后一条消息",
-                                    lastTime = "2023-05-05 12:00:00"
-                                ),
-                                ChatSessionSummary(
-                                    chatId = 2,
-                                    friendId = 3,
-                                    friendNickname = "jack",
-                                    friendAvatarUrl = "http://api.starcommunity.asia:54321/uploads/deault.jpg",
-                                    lastMessage = "这是最后一条消息",
-                                    lastTime = "2023-05-05 12:00:00"
-                                )
-                            )
+                            val testData = sessionViewModel.chatSessions
+                            if (showChat){
+                                BackHandler {
+                                    sessionViewModel.loadSessions()
+                                    showChat = false
+                                }
+                            }
                            MessageListScreen(
                                sessionList = testData,
-                               onSessionClick = {
-                                   chatId, friendId ->
+                               onSessionClick = { session ->
+                                   selectedSession.value = session
                                    coroutineScope.launch {
                                        delay(50)
                                        showChat = true
                                    }
-                               }
+                               },
+                               sessionViewModel = sessionViewModel,
+                               userViewModel = userViewModel
                            )
                             AnimatedVisibility(
-                                visible = selectedSession != null && showChat,
+                                visible = showChat,
                                 enter = slideInHorizontally(
                                     initialOffsetX = { it },
                                     animationSpec = tween(350, easing = FastOutSlowInEasing)
@@ -292,21 +292,19 @@ fun Application(){
                                 ) + fadeOut(tween(350))
                             ) {
                                 MessageScreen(
-                                    userId = 1,
-                                    chatId = selectedSession.value?.chatId ?: 0,
+                                    userId = userViewModel.id.value,
                                     friendId = selectedSession.value?.friendId ?: 0,
-                                    onBack = {showChat = false}
+                                    onBack = {showChat = false},
+                                    friendAvatarUrl = selectedSession.value?.friendAvatarUrl ?: "",
                                 )
                             }
                         }
 
                         3 -> {
                             if (!loggedIn) {
-                                // 登录
-                               //ShaderBackground()
                                     LoginScreen(
                                         onLogin = { username, password ->
-                                            userViewModel.loginUser(username, password)
+                                            userViewModel.loginUser(username, password, sessionViewModel)
                                         },
                                         onRegisterClick = {
                                             ctx.startActivity(
@@ -336,6 +334,8 @@ fun Application(){
                 }
             }
         }
+
+
 
 // 底部导航栏（）
 @Composable

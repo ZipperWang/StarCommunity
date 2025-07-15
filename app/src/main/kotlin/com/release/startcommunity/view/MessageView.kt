@@ -61,20 +61,28 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.rounded.ChatBubbleOutline
 import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.ui.text.style.TextOverflow
+import com.release.startcommunity.api.CreateMessageRequest
 import com.release.startcommunity.model.ChatSessionSummary
 import com.release.startcommunity.viewmodel.ChatViewModel
-
+import com.release.startcommunity.viewmodel.SessionViewModel
+import com.release.startcommunity.viewmodel.UserViewModel
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MessageListScreen(
     sessionList: List<ChatSessionSummary>,
-    onSessionClick: (chatId: Long, friendId: Long) -> Unit
+    onSessionClick: (session: ChatSessionSummary) -> Unit,
+    sessionViewModel: SessionViewModel,
+    userViewModel: UserViewModel
 ) {
+    LaunchedEffect(Unit) {
+        sessionViewModel.loadSessions()
+    }
 
     Scaffold(topBar = {
         TopAppBar(
@@ -92,7 +100,7 @@ fun MessageListScreen(
         ) {
             items(sessionList) { session ->
                 SessionItem(session = session) {
-                    onSessionClick(session.chatId, session.friendId)
+                    onSessionClick(session)
                 }
                 Divider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
             }
@@ -125,7 +133,7 @@ fun SessionItem(session: ChatSessionSummary, onClick: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = session.friendNickname,
+                    text = session.friendNickName,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 16.sp,
                     maxLines = 1,
@@ -133,7 +141,7 @@ fun SessionItem(session: ChatSessionSummary, onClick: () -> Unit) {
                     modifier = Modifier.weight(1f)
                 )
                 Text(
-                    text = session.lastTime,
+                    text = Tool.run { yieldPostTime(countGapFromNow(session.lastTime)) },
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -155,15 +163,21 @@ fun SessionItem(session: ChatSessionSummary, onClick: () -> Unit) {
 @Composable
 fun MessageScreen(
     userId: Long,
-    chatId: Long,
     friendId: Long,
+    friendAvatarUrl: String,
     viewModel: ChatViewModel = remember {
-        ChatViewModel(userId = userId, chatId = chatId, friendId = friendId)
+        ChatViewModel(userId, friendId)
     },
     onBack: () -> Unit
 ) {
     val messages = viewModel.messages
-    val input by remember { derivedStateOf { viewModel.inputText } }
+    var input by remember { mutableStateOf("") }
+    DisposableEffect(Unit) {
+        viewModel.connect()
+        onDispose {
+            viewModel.disconnect()
+        }
+    }
 
     Scaffold(
         topBar ={
@@ -195,33 +209,32 @@ fun MessageScreen(
             ) {
                 items(messages.reversed()) { message ->
                     val isMe = message.senderId == userId
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .background(
-                                    if (isMe) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.secondary,
-                                    shape = RoundedCornerShape(12.dp)
-                                )
-                                .padding(10.dp)
-                        ) {
-                            Text(
-                                text = message.content,
-                                color = if (isMe) Color.White else Color.Black,
-                                fontSize = 16.sp
-                            )
-                        }
-                    }
+                    ChatMessageItem(message = message, isMe = isMe, avatarUrl = friendAvatarUrl)//
+//                    Row(
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .padding(vertical = 4.dp),
+//                        horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start
+//                    ) {
+//                        Box(
+//                            modifier = Modifier
+//                                .background(
+//                                    if (isMe) MaterialTheme.colorScheme.primary
+//                                    else MaterialTheme.colorScheme.secondary,
+//                                    shape = RoundedCornerShape(12.dp)
+//                                )
+//                                .padding(10.dp)
+//                        ) {
+//                            Text(
+//                                text = message.content,
+//                                color = if (isMe) Color.White else Color.Black,
+//                                fontSize = 16.sp
+//                            )
+//                        }
+//                    }
                 }
 
             }
-
-
             Row(
                 modifier = Modifier
                     .padding(8.dp)
@@ -229,7 +242,7 @@ fun MessageScreen(
             ) {
                 TextField(
                     value = input,
-                    onValueChange = { viewModel.inputText = it },
+                    onValueChange = { input = it },
                     modifier = Modifier.weight(1f),
                     placeholder = { Text("输入消息...") },
                     maxLines = 4,
@@ -237,10 +250,56 @@ fun MessageScreen(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                Button(onClick = { viewModel.sendMessage() }) {
+                Button(onClick = {
+                    viewModel.sendMessage(input)
+                    input = ""
+                }) {
                     Text("发送")
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun ChatMessageItem(
+    message: CreateMessageRequest,
+    isMe: Boolean,
+    avatarUrl: String
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start
+    ) {
+        if (!isMe) {
+            AsyncImage(
+                model = avatarUrl,
+                contentDescription = "对方头像",
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+        }
+
+        Box(
+            modifier = Modifier
+                .background(
+                    color = if (isMe) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(12.dp)
+                )
+                .padding(12.dp)
+        ) {
+            Text(
+                text = message.content,
+                color = if (isMe) Color.White else Color.Black
+            )
+        }
+
+        if (isMe) {
+            Spacer(modifier = Modifier.width(8.dp))
         }
     }
 }

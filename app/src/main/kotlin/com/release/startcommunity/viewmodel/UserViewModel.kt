@@ -89,7 +89,7 @@ class UserViewModel(private val app: Application): AndroidViewModel(app) {
         }
     }
 
-    fun loginUser(username: String, password: String) {
+    fun loginUser(username: String, password: String, sessionViewModel: SessionViewModel) {
         viewModelScope.launch {
             try {
                 val res = ApiClient.api.login(LoginRequest(username, password))
@@ -98,6 +98,7 @@ class UserViewModel(private val app: Application): AndroidViewModel(app) {
                 _currentUser.value = ApiClient.api.getUserById(res.userId)
                 _errorMessage.value = null
                 _loggedIn.value = true
+                sessionViewModel.updateUserId(res.userId)
                 SecureStore.save(app, username, password)
                 _toastMessage.postValue(Event("登陆成功！"))
             }catch (e: Exception){
