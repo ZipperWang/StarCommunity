@@ -1,5 +1,6 @@
 package com.release.startcommunity.view
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -10,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -33,8 +33,9 @@ import androidx.compose.ui.unit.dp
 import com.halilibo.richtext.commonmark.Markdown
 import com.halilibo.richtext.ui.material3.RichText
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
+import kotlin.text.substring
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,8 +45,7 @@ fun RichTextEditorScreen(
     onSubmit: (String) -> Unit,
     onBack: () -> Unit,
 ) {
-
-    var tarContent by remember { mutableStateOf(initContent) }
+    var tarContent by remember { mutableStateOf(TextFieldValue(initContent)) }
     val tarTitle by remember { mutableStateOf(initTitle) }
 
     Scaffold(
@@ -74,25 +74,54 @@ fun RichTextEditorScreen(
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(24.dp))
-            val preSetItems = listOf("# ", "## ", "### ", "#### ", "##### ", "###### ",
-                "**", "*", "~~~", "1. ", "2. ", "3. ", "-", "***", "```", "`")
-            var preSetItem = preSetItems[0]
+
             Row(
-                modifier = Modifier.fillMaxWidth().heightIn(min = 40.dp, max = 80.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 40.dp, max = 80.dp),
                 horizontalArrangement = Arrangement.Start,
             ) {
+                val preSetItemsMap = mapOf("一级标题(#)" to "# ", "二级标题(##)" to "## ",
+                    "三级标题(###)" to "### ", "四级标题(####)" to "#### ",
+                    "五级标题(#####)" to "##### ", "六级标题(######)" to "###### ",
+                "粗体(**)" to "**", "斜体(*)" to "*", "删除线(~)" to "~", "有序列表1(1.)" to "1. ",
+                    "有序列表2(2.)" to "2. ", "有序列表3(3.)" to "3. ", "无序列表(-)" to "- ",
+                    "引用(>)" to "> ", "分割线(***)" to "***\n", "连接文本([])" to "[]",
+                    "链接地址(())" to "()", "代码块(```)" to "```\n", "小代码块(`)" to "`",
+                    "图片(![name][url])" to "![]()")
+                var preSetItem by remember { mutableStateOf(preSetItemsMap.keys.toList()[0]) }
+                val preSetItems = preSetItemsMap.keys.toList()
                 ExposedDropdownMenuComboBox(
                     items = preSetItems,
                     selectedItem = preSetItem,
-                    onItemSelected = {preSetItem = it},
+                    onItemSelected = { preSetItem = it },
                     label = "Markdown快捷输入"
                 )
                 Column(
                     modifier = Modifier.fillMaxSize(),
                 ) {
                     Button(
-                        onClick = { tarContent += preSetItem },
-                        modifier = Modifier.align(Alignment.End).padding(top = 12.dp)
+                        onClick = {
+                            if (tarContent.selection.collapsed) {
+                                val currentText = tarContent.text
+                                val selection = tarContent.selection
+                                val insertValue = preSetItemsMap[preSetItem] ?: ""
+
+                                // 在光标处插入文本
+                                val newText = currentText.substring(0, selection.start) +
+                                        insertValue +
+                                        currentText.substring(selection.end)
+                                // 更新光标位置到插入文本之后
+                                val newSelectionStart = selection.start + insertValue.length
+                                tarContent = TextFieldValue(
+                                    text = newText,
+                                    selection = TextRange(newSelectionStart)
+                                )
+                            }
+                                  },
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .padding(top = 12.dp)
                     ) {
                         Text("插入")
                     }
@@ -101,11 +130,11 @@ fun RichTextEditorScreen(
             Spacer(modifier = Modifier.height(12.dp))
             YieldContent("# 预览效果：")
             Spacer(modifier = Modifier.height(12.dp))
-            YieldContent(tarContent)
+            YieldContent(tarContent.text)
             Button(
                 onClick = {
                     //navController.navigate("PostCreateBack/$tarContent/$tarTitle")
-                    onSubmit(tarContent)
+                    onSubmit(tarContent.text)
                           },
                 modifier = Modifier.align(Alignment.End)
             ) {
@@ -133,6 +162,7 @@ fun ExposedDropdownMenuComboBox(
     var expanded by remember { mutableStateOf(false) }
     // 手动管理 TextField 的文本，使其与选中的项同步
     var textFieldValue by remember(selectedItem) { mutableStateOf(selectedItem) }
+//    var textFieldValue = selectedItem
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = { expanded = !expanded }
@@ -142,7 +172,7 @@ fun ExposedDropdownMenuComboBox(
             value = textFieldValue,
             onValueChange = { textFieldValue = it },
             readOnly = true, // 使其更像 ComboBox
-            label = { Text(label) },
+            label = { Text(label, modifier = Modifier.background(MaterialTheme.colorScheme.background)) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             colors = ExposedDropdownMenuDefaults.textFieldColors()
         )
