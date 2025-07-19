@@ -19,7 +19,8 @@ import com.release.startcommunity.tool.ShaderPresets.lightPreset
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
-@RequiresApi(Build.VERSION_CODES.TIRAMISU)//找了半天原来是Android13的API，借鉴的时候注意这个
+
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 fun ShaderBackground(
     modifier: Modifier = Modifier

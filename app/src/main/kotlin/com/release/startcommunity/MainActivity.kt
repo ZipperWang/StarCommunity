@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModelProvider
@@ -64,7 +65,6 @@ class MainActivity : ComponentActivity() {
     private lateinit var viewModelOfPostView: PostViewModel
     private lateinit var viewModelOfUserView: UserViewModel
 
-    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -102,7 +102,6 @@ class MainActivity : ComponentActivity() {
 
 
 @SuppressLint("StateFlowValueCalledInComposition")
-@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class,
     ExperimentalAnimationApi::class
 )
@@ -114,7 +113,9 @@ fun Application(){
     var selectedTab by remember { mutableStateOf(0) }
     var selectedPost by remember { mutableStateOf<Post?>(null) }
     var createPost by remember { mutableStateOf(false) }
+    val selectedSession = remember { mutableStateOf<ChatSessionSummary?>(null) }
     var showDetails by remember { mutableStateOf(false) }
+    var showChat by remember { mutableStateOf(false) }
     if (showDetails){
         BackHandler {
             showDetails = false
@@ -132,23 +133,22 @@ fun Application(){
     }
     val loggedIn by userViewModel.loggedIn.collectAsState()
 
-    val bottomBarState = remember { MutableTransitionState(!showDetails) }
-    bottomBarState.targetState = !showDetails
+    val bottomBarState = remember { MutableTransitionState(true) }
+    bottomBarState.targetState = !(showDetails || showChat)
 
     var showCommentBar by remember { mutableStateOf(false) }
 
-
-    LaunchedEffect(bottomBarState.currentState, bottomBarState.targetState) {
-        if (showDetails) {
-            snapshotFlow { bottomBarState.isIdle }.collect { isIdle ->
-                if (isIdle && !bottomBarState.currentState) {
-                    showCommentBar = true
-                }
-            }
-        } else {
-            showCommentBar = false
-        }
-    }
+//    LaunchedEffect(bottomBarState.currentState, bottomBarState.targetState, showDetails, showChat) {
+//        if (showDetails || showChat) {
+//            snapshotFlow { bottomBarState.isIdle }.collect { isIdle ->
+//                if (isIdle && !bottomBarState.currentState) {
+//                    showCommentBar = true
+//                }
+//            }
+//        } else {
+//            showCommentBar = false
+//        }
+//    }
 
     val userId by userViewModel.id.collectAsState()
     LaunchedEffect(userId) {
@@ -158,17 +158,22 @@ fun Application(){
 
     Scaffold(
         bottomBar = {
-            AnimatedVisibility(
-                visibleState = bottomBarState,
-                enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
-                exit = fadeOut() + slideOutVertically(targetOffsetY = { it })
-            ) {
-                GlassNavigationBar(
-                    selectedTab,
-                    onSelect = {
-                        selectedTab = it
-                    })
-            }
+            GlassNavigationBar(
+                selectedTab,
+                onSelect = {
+                    selectedTab = it
+                })
+//            AnimatedVisibility(
+//                visibleState = bottomBarState,
+//                enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
+//                exit = fadeOut() + slideOutVertically(targetOffsetY = { it })
+//            ) {
+//                GlassNavigationBar(
+//                    selectedTab,
+//                    onSelect = {
+//                        selectedTab = it
+//                    })
+//            }
         },
         modifier = Modifier
             .navigationBarsPadding()
@@ -201,66 +206,46 @@ fun Application(){
                                     userViewModel = userViewModel
                                 )
                                 // 帖子详情
-                                    AnimatedVisibility(
-                                        visible = selectedPost != null && showDetails,
-                                        enter = slideInHorizontally(
-                                            initialOffsetX = { it },
-                                            animationSpec = tween(350, easing = FastOutSlowInEasing)
-                                        ) + fadeIn(tween(350)),
-                                        exit = slideOutHorizontally(
-                                            targetOffsetX = { it },
-                                            animationSpec = tween(350, easing = FastOutSlowInEasing)
-                                        ) + fadeOut(tween(350))
-                                    ) {
-//                                        PostDetailScreen(
-//                                            post = selectedPost!!,
-//                                            onBack = {
-//                                                showDetails = false
-//                                            },
-//                                            showCommentBar = showCommentBar,
-//                                            onSubmitComment = {postId, content ->
-//                                                postsViewModel.createComment(
-//                                                    postId,
-//                                                    content,
-//                                                    userViewModel.currentUser.value,
-//                                                    onCommentCreated = {
-//                                                        selectedPost = selectedPost?.copy(comments = selectedPost!!.comments + it)
-//                                                    }
-//                                                )
-////                                                postsViewModel.loadComments(postId) {
-////                                                    selectedPost = it
-////                                                }
-//                                            }
-//                                        )
-                                        selectedPost?.let { post ->
-                                            PostDetailScreen(
-                                                post = post,
-                                                onBack = { showDetails = false },
-                                                showCommentBar = showCommentBar,
-                                                onSubmitComment = { postId, content ->
-                                                    postsViewModel.createComment(
-                                                        postId,
-                                                        content,
-                                                        userViewModel.currentUser.value,
-                                                        onCommentCreated = { comment ->
-                                                            selectedPost = post.copy(comments = post.comments + comment)
-                                                        }
-                                                    )
-                                                }
-                                            )
-                                        }
-                                    }
+//                                    AnimatedVisibility(
+//                                        visible = selectedPost != null && showDetails,
+//                                        enter = slideInHorizontally(
+//                                            initialOffsetX = { it },
+//                                            animationSpec = tween(350, easing = FastOutSlowInEasing)
+//                                        ) + fadeIn(tween(350)),
+//                                        exit = slideOutHorizontally(
+//                                            targetOffsetX = { it },
+//                                            animationSpec = tween(350, easing = FastOutSlowInEasing)
+//                                        ) + fadeOut(tween(350))
+//                                    ) {
+//                                        selectedPost?.let { post ->
+//                                            PostDetailScreen(
+//                                                post = post,
+//                                                onBack = { showDetails = false },
+//                                                showCommentBar = showCommentBar,
+//                                                onSubmitComment = { postId, content ->
+//                                                    postsViewModel.createComment(
+//                                                        postId,
+//                                                        content,
+//                                                        userViewModel.currentUser.value,
+//                                                        onCommentCreated = { comment ->
+//                                                            selectedPost = post.copy(comments = post.comments + comment)
+//                                                        }
+//                                                    )
+//                                                }
+//                                            )
+//                                        }
+//                                    }
                             }
                         }
                         1 -> {
                             Box(modifier = Modifier.fillMaxSize()){
-                                ShaderBackground(modifier = Modifier.fillMaxSize())
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) ShaderBackground(modifier = Modifier.fillMaxSize())
                             }
                         }
 
                         2 -> {
-                            val selectedSession = remember { mutableStateOf<ChatSessionSummary?>(null) }
-                            var showChat by remember { mutableStateOf(false) }
+
+
                             val testData = sessionViewModel.chatSessions
                             if (showChat){
                                 BackHandler {
@@ -280,24 +265,25 @@ fun Application(){
                                sessionViewModel = sessionViewModel,
                                userViewModel = userViewModel
                            )
-                            AnimatedVisibility(
-                                visible = showChat,
-                                enter = slideInHorizontally(
-                                    initialOffsetX = { it },
-                                    animationSpec = tween(350, easing = FastOutSlowInEasing)
-                                ) + fadeIn(tween(350)),
-                                exit = slideOutHorizontally(
-                                    targetOffsetX = { it },
-                                    animationSpec = tween(350, easing = FastOutSlowInEasing)
-                                ) + fadeOut(tween(350))
-                            ) {
-                                MessageScreen(
-                                    userId = userViewModel.id.value,
-                                    friendId = selectedSession.value?.friendId ?: 0,
-                                    onBack = {showChat = false},
-                                    friendAvatarUrl = selectedSession.value?.friendAvatarUrl ?: "",
-                                )
-                            }
+//                            AnimatedVisibility(
+//                                visible = showChat,
+//                                enter = slideInHorizontally(
+//                                    initialOffsetX = { it },
+//                                    animationSpec = tween(350, easing = FastOutSlowInEasing)
+//                                ) + fadeIn(tween(350)),
+//                                exit = slideOutHorizontally(
+//                                    targetOffsetX = { it },
+//                                    animationSpec = tween(350, easing = FastOutSlowInEasing)
+//                                ) + fadeOut(tween(350))
+//                            ) {
+//                                MessageScreen(
+//                                    userId = userViewModel.id.value,
+//                                    friendId = selectedSession.value?.friendId ?: 0,
+//                                    onBack = {showChat = false},
+//                                    friendAvatarUrl = selectedSession.value?.friendAvatarUrl ?: "",
+//                                    showCommentBar = showCommentBar
+//                                )
+//                            }
                         }
 
                         3 -> {
@@ -333,6 +319,55 @@ fun Application(){
                     }
                 }
             }
+    AnimatedVisibility(
+        visible = selectedPost != null && showDetails,
+        enter = slideInHorizontally(
+            initialOffsetX = { it },
+            animationSpec = tween(350, easing = FastOutSlowInEasing)
+        ) + fadeIn(tween(350)),
+        exit = slideOutHorizontally(
+            targetOffsetX = { it },
+            animationSpec = tween(350, easing = FastOutSlowInEasing)
+        ) + fadeOut(tween(350))
+    ) {
+        selectedPost?.let { post ->
+            PostDetailScreen(
+                post = post,
+                onBack = { showDetails = false },
+                showCommentBar = true,
+                onSubmitComment = { postId, content ->
+                    postsViewModel.createComment(
+                        postId,
+                        content,
+                        userViewModel.currentUser.value,
+                        onCommentCreated = { comment ->
+                            selectedPost = post.copy(comments = post.comments + comment)
+                        }
+                    )
+                }
+            )
+        }
+    }
+    AnimatedVisibility(
+        visible = showChat,
+        enter = slideInHorizontally(
+            initialOffsetX = { it },
+            animationSpec = tween(350, easing = FastOutSlowInEasing)
+        ) + fadeIn(tween(350)),
+        exit = slideOutHorizontally(
+            targetOffsetX = { it },
+            animationSpec = tween(350, easing = FastOutSlowInEasing)
+        ) + fadeOut(tween(350))
+    ) {
+        MessageScreen(
+            userId = userViewModel.id.value,
+            friendId = selectedSession.value?.friendId ?: 0,
+            onBack = {showChat = false},
+            friendAvatarUrl = selectedSession.value?.friendAvatarUrl ?: "",
+            friendNickName = selectedSession.value?.friendNickName ?: "",
+            showCommentBar = true
+        )
+    }
         }
 
 
@@ -394,5 +429,10 @@ fun GlassNavigationBar(
         }
     }
 }
+
+
+
+
+
 
 

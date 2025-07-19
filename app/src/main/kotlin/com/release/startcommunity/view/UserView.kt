@@ -57,6 +57,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.background
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -77,14 +78,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 
-@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 fun LoginScreen(onLogin: (String, String) -> Unit, onRegisterClick: () -> Unit) {
     var username by remember { mutableStateOf("") }
 
     var password by remember { mutableStateOf("") }
     Box(modifier = Modifier.fillMaxSize()) {
-        ShaderBackground(modifier = Modifier.fillMaxSize())
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) ShaderBackground(modifier = Modifier.fillMaxSize())
         Column(
             modifier = Modifier.fillMaxSize().padding(24.dp),
             verticalArrangement = Arrangement.Center,
@@ -94,7 +94,10 @@ fun LoginScreen(onLogin: (String, String) -> Unit, onRegisterClick: () -> Unit) 
             Spacer(Modifier.height(16.dp))
             M3InputTextBar(outText = username, hintText = "用户名", onTextChange = {
                 username = it
-            }, icon = Icons.Default.AccountCircle)
+            }, icon = Icons.Default.AccountCircle,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp))
 //        OutlinedTextField(
 //            value = username,
 //            onValueChange = { username = it },
@@ -108,7 +111,10 @@ fun LoginScreen(onLogin: (String, String) -> Unit, onRegisterClick: () -> Unit) 
 //        )
             M3InputTextBar(outText = password, hintText = "密码", onTextChange = {
                 password = it
-            }, icon = Icons.Default.Password)
+            }, icon = Icons.Default.Password,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp))
             Spacer(Modifier.height(16.dp))
 
             Button(
@@ -289,7 +295,8 @@ fun M3InputTextBar(
     outText: String,
     hintText: String,
     onTextChange: (String) -> Unit,
-    icon:ImageVector
+    icon:ImageVector,
+    modifier: Modifier
 ) {
     OutlinedTextField(
         value = outText,
@@ -305,15 +312,13 @@ fun M3InputTextBar(
             focusedBorderColor      = Color.Transparent,
             unfocusedBorderColor    = Color.Transparent
         ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(12.dp)
+        modifier = modifier
     )
 }
 
 /* ─────────  页面入口  ───────── */
 
-@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+
 @SuppressLint("StateFlowValueCalledInComposition")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -339,19 +344,19 @@ fun AboutScreen(
         containerColor = Color.Transparent,
     ) { inner ->
         Box(modifier = Modifier.fillMaxSize()) {
-            ShaderBackground(modifier = Modifier.fillMaxSize())
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) ShaderBackground(modifier = Modifier.fillMaxSize())
             LazyColumn(
                 contentPadding = PaddingValues(
                     top = inner.calculateTopPadding(),
                     bottom = inner.calculateBottomPadding() + 80.dp  // 为“退出”预留空间
                 ),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp),
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Transparent)
             ) {
                 item {
-                    SectionCard {
+                    SectionCard() {
                         ProfileRow(
                             avatar = userViewModel.currentUser.value?.avatar
                                 ?: "https://picsum.photos/200/300",
@@ -370,7 +375,11 @@ fun AboutScreen(
                 item {
                     SectionCard {
                         SimpleRow("Telegram 群组")
-                        Divider(Modifier.padding(horizontal = 16.dp))
+                        HorizontalDivider(
+                            Modifier.padding(horizontal = 16.dp),
+                            DividerDefaults.Thickness,
+                            DividerDefaults.color
+                        )
                         SimpleRow("Telegram 频道")
                     }
                 }
@@ -380,9 +389,17 @@ fun AboutScreen(
                 item {
                     SectionCard {
                         SimpleRow("项目地址", "AGPL-3.0 开源")
-                        Divider(Modifier.padding(horizontal = 16.dp))
+                        HorizontalDivider(
+                            Modifier.padding(horizontal = 16.dp),
+                            DividerDefaults.Thickness,
+                            DividerDefaults.color
+                        )
                         SimpleRow("官方网站")
-                        Divider(Modifier.padding(horizontal = 16.dp))
+                        HorizontalDivider(
+                            Modifier.padding(horizontal = 16.dp),
+                            DividerDefaults.Thickness,
+                            DividerDefaults.color
+                        )
                         SimpleRow("引用")
                     }
                 }
@@ -395,7 +412,7 @@ fun AboutScreen(
                             onClick = onLogout,
                             modifier = Modifier
                                 .fillMaxWidth(0.9f)
-                                .height(64.dp)
+                                .height(76.dp)
                                 .padding(bottom = 24.dp),
                             shape = RoundedCornerShape(24.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
@@ -433,6 +450,8 @@ private fun SectionCard(content: @Composable ColumnScope.() -> Unit) =
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(0.dp)
     ) { Column(content = content) }
+
+
 
 
 @Composable

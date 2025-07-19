@@ -55,6 +55,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.magnifier
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -165,10 +166,12 @@ fun MessageScreen(
     userId: Long,
     friendId: Long,
     friendAvatarUrl: String,
+    friendNickName: String,
     viewModel: ChatViewModel = remember {
         ChatViewModel(userId, friendId)
     },
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    showCommentBar: Boolean,
 ) {
     val messages = viewModel.messages
     var input by remember { mutableStateOf("") }
@@ -182,70 +185,38 @@ fun MessageScreen(
     Scaffold(
         topBar ={
             CenterAlignedTopAppBar(
-                title = { Text(userId.toString()) },
+                title = { Text(friendNickName) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "返回")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
                 ),
                 modifier = Modifier.fillMaxWidth()
             )
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(8.dp),
-                reverseLayout = true
-            ) {
-                items(messages.reversed()) { message ->
-                    val isMe = message.senderId == userId
-                    ChatMessageItem(message = message, isMe = isMe, avatarUrl = friendAvatarUrl)//
-//                    Row(
-//                        modifier = Modifier
-//                            .fillMaxWidth()
-//                            .padding(vertical = 4.dp),
-//                        horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start
-//                    ) {
-//                        Box(
-//                            modifier = Modifier
-//                                .background(
-//                                    if (isMe) MaterialTheme.colorScheme.primary
-//                                    else MaterialTheme.colorScheme.secondary,
-//                                    shape = RoundedCornerShape(12.dp)
-//                                )
-//                                .padding(10.dp)
-//                        ) {
-//                            Text(
-//                                text = message.content,
-//                                color = if (isMe) Color.White else Color.Black,
-//                                fontSize = 16.sp
-//                            )
-//                        }
-//                    }
-                }
-
-            }
+        },
+        bottomBar = {
             Row(
                 modifier = Modifier
-                    .padding(8.dp)
+                    .padding(24.dp)
                     .fillMaxWidth()
             ) {
-                TextField(
-                    value = input,
-                    onValueChange = { input = it },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("输入消息...") },
-                    maxLines = 4,
+//                TextField(
+//                    value = input,
+//                    onValueChange = { input = it },
+//                    modifier = Modifier.weight(1f),
+//                    placeholder = { Text("输入消息...") },
+//                    maxLines = 4,
+//                )
+                M3InputTextBar(
+                    outText = input,
+                    hintText = "输入消息...",
+                    onTextChange = { input = it },
+                    icon = Icons.Rounded.ChatBubbleOutline,
+                    modifier = Modifier.weight(1f)
                 )
 
                 Spacer(modifier = Modifier.width(8.dp))
@@ -257,6 +228,64 @@ fun MessageScreen(
                     Text("发送")
                 }
             }
+//            AnimatedVisibility(
+//                visible = showCommentBar,
+//                enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
+//                exit = fadeOut() + slideOutVertically(targetOffsetY = { it }),
+//            ) {
+//                Row(
+//                    modifier = Modifier
+//                        .padding(8.dp)
+//                        .fillMaxWidth()
+//                ) {
+//                    TextField(
+//                        value = input,
+//                        onValueChange = { input = it },
+//                        modifier = Modifier.weight(1f),
+//                        placeholder = { Text("输入消息...") },
+//                        maxLines = 4,
+//                    )
+//
+//                    Spacer(modifier = Modifier.width(8.dp))
+//
+//                    Button(onClick = {
+//                        viewModel.sendMessage(input)
+//                        input = ""
+//                    }) {
+//                        Text("发送")
+//                    }
+//                }
+//            }
+        }
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+            ) {
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(8.dp),
+                    reverseLayout = true
+                ) {
+                    items(messages.reversed()) { message ->
+                        val isMe = message.senderId == userId
+                        ChatMessageItem(
+                            message = message,
+                            isMe = isMe,
+                            avatarUrl = friendAvatarUrl
+                        )//
+                    }
+
+                }
+
+            }
+
         }
     }
 }

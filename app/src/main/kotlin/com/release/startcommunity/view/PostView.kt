@@ -70,7 +70,6 @@ import com.release.startcommunity.api.CreatePostRequest
 import com.release.startcommunity.viewmodel.UserViewModel
 
 
-@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalAnimationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun PostListScreen(
@@ -184,14 +183,6 @@ fun PostListScreen(
                 ),
                 modifier = Modifier.fillMaxSize()
             ) {
-//                NavigationLogics().NavLogic_CreatePost(
-//                    bundleOnSubmit = {
-//                        viewModel.addPost(it.title, it.content, userViewModel.id.value)
-//                        showCreatePage = false
-//                    },
-//                    bundleOnBack = { showCreatePage = false },
-//                    bundleUserViewModel = userViewModel,
-//                )
                 var title by remember { mutableStateOf("") }
                 var content by remember { mutableStateOf("") }
                 Box(modifier = Modifier.fillMaxSize()) {
@@ -361,76 +352,125 @@ fun PostDetailScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
                 ),
                 modifier = Modifier.fillMaxWidth()
             )
         },
         // 评论栏
         bottomBar = {
-            AnimatedVisibility(
-                visible = showCommentBar ,
-                enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
-                exit = fadeOut() + slideOutVertically(targetOffsetY = { it })
-            ) {
-            Column(
+            Row(
                 modifier = Modifier
-                    .background(Color(0xFFF8F8F8))
-                    .padding(8.dp)
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(8.dp),
+                verticalAlignment = Alignment.Bottom
             ) {
-                Row(
+                OutlinedTextField(
+                    value = commentText,
+                    onValueChange = { commentText = it },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0xFFFDFDFD))
-                        .padding(8.dp),
-                    verticalAlignment = Alignment.Bottom
-                ) {
-                    OutlinedTextField(
-                        value = commentText,
-                        onValueChange = { commentText = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .heightIn(min = 56.dp, max = 120.dp)
-                            .padding(horizontal = 4.dp),
-                        placeholder = { Text("写下你的评论...") },
-                        maxLines = 4,
-                        shape = RoundedCornerShape(12.dp),
-                        singleLine = false,
-                        keyboardOptions = KeyboardOptions.Default.copy(
-                            imeAction = ImeAction.Default,
-                            keyboardType = KeyboardType.Text
-                        ),
-                        keyboardActions = KeyboardActions(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = Color(0xFFE0E0E0),
-                            cursorColor = MaterialTheme.colorScheme.primary,
-                            focusedPlaceholderColor = Color.Gray,
-                            unfocusedPlaceholderColor = Color.LightGray
-                        )
+                        .weight(1f)
+                        .heightIn(min = 56.dp, max = 120.dp)
+                        .padding(horizontal = 8.dp),
+                    placeholder = { Text("写下你的评论...") },
+                    maxLines = 4,
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = false,
+                    keyboardOptions = KeyboardOptions.Default.copy(
+                        imeAction = ImeAction.Default,
+                        keyboardType = KeyboardType.Text
+                    ),
+                    keyboardActions = KeyboardActions(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        cursorColor = MaterialTheme.colorScheme.primary,
+                        focusedPlaceholderColor = Color.Gray,
+                        unfocusedPlaceholderColor = Color.LightGray
                     )
+                )
 
-                    Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(8.dp))
 
-                    Button(
-                        onClick = {
-                            onSubmitComment(post.id, commentText)
-                            commentText = ""
-                                  },
-                        enabled = commentText.isNotBlank(),
-                        modifier = Modifier.align(Alignment.Bottom),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("发送")
-                    }
-
+                Button(
+                    onClick = {
+                        onSubmitComment(post.id, commentText)
+                        commentText = ""
+                    },
+                    enabled = commentText.isNotBlank(),
+                    modifier = Modifier.align(Alignment.Bottom),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("发送")
                 }
 
-                }
             }
+//            AnimatedVisibility(
+//                visible = showCommentBar ,
+//                enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
+//                exit = fadeOut() + slideOutVertically(targetOffsetY = { it })
+//            ) {
+//            Column(
+//                modifier = Modifier
+//                    .background(MaterialTheme.colorScheme.background)
+//                    .padding(8.dp)
+//            ) {
+//                Row(
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .background(MaterialTheme.colorScheme.background)
+//                        .padding(8.dp),
+//                    verticalAlignment = Alignment.Bottom
+//                ) {
+//                    OutlinedTextField(
+//                        value = commentText,
+//                        onValueChange = { commentText = it },
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .weight(1f)
+//                            .heightIn(min = 56.dp, max = 120.dp)
+//                            .padding(horizontal = 8.dp),
+//                        placeholder = { Text("写下你的评论...") },
+//                        maxLines = 4,
+//                        shape = RoundedCornerShape(12.dp),
+//                        singleLine = false,
+//                        keyboardOptions = KeyboardOptions.Default.copy(
+//                            imeAction = ImeAction.Default,
+//                            keyboardType = KeyboardType.Text
+//                        ),
+//                        keyboardActions = KeyboardActions(),
+//                        colors = OutlinedTextFieldDefaults.colors(
+//                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+//                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+//                            cursorColor = MaterialTheme.colorScheme.primary,
+//                            focusedPlaceholderColor = Color.Gray,
+//                            unfocusedPlaceholderColor = Color.LightGray
+//                        )
+//                    )
+//
+//                    Spacer(modifier = Modifier.width(8.dp))
+//
+//                    Button(
+//                        onClick = {
+//                            onSubmitComment(post.id, commentText)
+//                            commentText = ""
+//                                  },
+//                        enabled = commentText.isNotBlank(),
+//                        modifier = Modifier.align(Alignment.Bottom),
+//                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+//                        shape = RoundedCornerShape(12.dp)
+//                    ) {
+//                        Text("发送")
+//                    }
+//
+//                }
+//
+//                }
+//            }
         }
     ) { innerPadding ->
         LazyColumn(
@@ -541,7 +581,7 @@ private fun CommentCard(commenter: String, text: String) {
 
 
 
-@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PostCreateScreen(
