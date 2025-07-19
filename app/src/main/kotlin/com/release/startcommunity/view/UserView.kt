@@ -327,7 +327,8 @@ fun AboutScreen(
     onTabChange: (Int) -> Unit,
     onToggleTheme: () -> Unit,
     onLogout: () -> Unit,
-    userViewModel: UserViewModel
+    userViewModel: UserViewModel,
+    onUserClick: () -> Unit
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
@@ -362,7 +363,8 @@ fun AboutScreen(
                                 ?: "https://picsum.photos/200/300",
                             title = userViewModel.currentUser.value?.username ?: "默认名称",
                             subtitle = "UID@" + userViewModel.id.value,
-                            userViewModel
+                            userViewModel,
+                            onClick = onUserClick
                         )
                     }
                 }
@@ -459,61 +461,68 @@ private fun ProfileRow(
     avatar: String,
     title: String,
     subtitle: String,
-    viewModel: UserViewModel
-) = RowItem {
-    val context = LocalContext.current
-    val imageUri = remember { mutableStateOf<Uri?>(null) }
+    viewModel: UserViewModel,
+    onClick: () -> Unit
+) {
+    RowItem(onClick = {
+        onClick()
+    }) {
+        val context = LocalContext.current
+        val imageUri = remember { mutableStateOf<Uri?>(null) }
 
-    // 图片选择 launcher
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        uri?.let { imageUri.value = it }
-    }
+        // 图片选择 launcher
+        val imagePickerLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent()
+        ) { uri ->
+            uri?.let { imageUri.value = it }
+        }
 
-    // 权限 launcher
-    val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-        Manifest.permission.READ_MEDIA_IMAGES else Manifest.permission.READ_EXTERNAL_STORAGE
+        // 权限 launcher
+        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+            Manifest.permission.READ_MEDIA_IMAGES else Manifest.permission.READ_EXTERNAL_STORAGE
 
-    val permissionGranted = remember {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+        val permissionGranted = remember {
+            mutableStateOf(
+                ContextCompat.checkSelfPermission(
+                    context,
+                    permission
+                ) == PackageManager.PERMISSION_GRANTED
+            )
+        }
+
+        val permissionLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestPermission()
+        ) { granted ->
+            permissionGranted.value = granted
+            if (granted) {
+                imagePickerLauncher.launch("image/*")
+            }
+        }
+
+
+        LaunchedEffect(imageUri.value) {
+            imageUri.value?.let {
+                viewModel.uploadUserAvatar(viewModel.id.value, it, context)
+            }
+        }
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(avatar)
+                .crossfade(true)
+                .build(),
+            contentDescription = null,
+            modifier = Modifier
+                .size(56.dp)
+                .clip(CircleShape)
+                .clickable {
+                    if (permissionGranted.value) {
+                        imagePickerLauncher.launch("image/*")
+                    } else {
+                        permissionLauncher.launch(permission)
+                    }
+                },
+            contentScale = ContentScale.Crop
         )
-    }
-
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        permissionGranted.value = granted
-        if (granted) {
-            imagePickerLauncher.launch("image/*")
-        }
-    }
-
-
-    LaunchedEffect(imageUri.value) {
-        imageUri.value?.let {
-            viewModel.uploadUserAvatar(viewModel.id.value, it, context)
-        }
-    }
-    AsyncImage(
-        model = ImageRequest.Builder(LocalContext.current)
-            .data(avatar)
-            .crossfade(true)
-            .build(),
-        contentDescription = null,
-        modifier = Modifier
-            .size(56.dp)
-            .clip(CircleShape)
-            .clickable{
-                if (permissionGranted.value) {
-                    imagePickerLauncher.launch("image/*")
-                } else {
-                    permissionLauncher.launch(permission)
-                }
-            },
-        contentScale = ContentScale.Crop
-    )
 //    AsyncImage(
 //        model = ImageRequest.Builder(LocalContext.current)
 //            .data(post.author.avatar)
@@ -525,15 +534,20 @@ private fun ProfileRow(
 //            .clip(CircleShape),
 //        contentScale = ContentScale.Crop,
 //    )
-    Spacer(Modifier.width(16.dp))
-    Column(Modifier.weight(1f)) {
-        Text(title, style = MaterialTheme.typography.titleMedium)
-        Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.width(16.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
 @Composable
-private fun SimpleRow(title: String, subtitle: String? = null) = RowItem {
+private fun SimpleRow(title: String, subtitle: String? = null) = RowItem( onClick = {}) {
     Column(Modifier.weight(1f)) {
         Text(title, style = MaterialTheme.typography.bodyLarge)
         subtitle?.let {
@@ -543,10 +557,10 @@ private fun SimpleRow(title: String, subtitle: String? = null) = RowItem {
 }
 
 @Composable
-private fun RowItem(content: @Composable RowScope.() -> Unit) = Row(
+private fun RowItem(onClick: () -> Unit, content: @Composable RowScope.() -> Unit) = Row(
     modifier = Modifier
         .fillMaxWidth()
-        .clickable { }                        // TODO: 挂接跳转逻辑
+        .clickable { onClick() }                        // TODO: 挂接跳转逻辑
         .padding(horizontal = 16.dp, vertical = 12.dp),
     verticalAlignment = Alignment.CenterVertically,
     content = {

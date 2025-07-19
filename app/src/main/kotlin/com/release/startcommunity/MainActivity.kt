@@ -51,6 +51,7 @@ import com.release.startcommunity.view.AboutScreen
 import com.release.startcommunity.view.LoginScreen
 import com.release.startcommunity.view.MessageListScreen
 import com.release.startcommunity.view.MessageScreen
+import com.release.startcommunity.view.PersonalProfileScreen
 import com.release.startcommunity.view.PostDetailScreen
 import com.release.startcommunity.view.PostListScreen
 import com.release.startcommunity.view.ShaderBackground
@@ -116,9 +117,15 @@ fun Application(){
     val selectedSession = remember { mutableStateOf<ChatSessionSummary?>(null) }
     var showDetails by remember { mutableStateOf(false) }
     var showChat by remember { mutableStateOf(false) }
+    var showProfile by remember { mutableStateOf(false) }
     if (showDetails){
         BackHandler {
             showDetails = false
+        }
+    }
+    if (showProfile){
+        BackHandler {
+            showProfile = false
         }
     }
     val coroutineScope = rememberCoroutineScope()
@@ -136,19 +143,7 @@ fun Application(){
     val bottomBarState = remember { MutableTransitionState(true) }
     bottomBarState.targetState = !(showDetails || showChat)
 
-    var showCommentBar by remember { mutableStateOf(false) }
 
-//    LaunchedEffect(bottomBarState.currentState, bottomBarState.targetState, showDetails, showChat) {
-//        if (showDetails || showChat) {
-//            snapshotFlow { bottomBarState.isIdle }.collect { isIdle ->
-//                if (isIdle && !bottomBarState.currentState) {
-//                    showCommentBar = true
-//                }
-//            }
-//        } else {
-//            showCommentBar = false
-//        }
-//    }
 
     val userId by userViewModel.id.collectAsState()
     LaunchedEffect(userId) {
@@ -163,17 +158,6 @@ fun Application(){
                 onSelect = {
                     selectedTab = it
                 })
-//            AnimatedVisibility(
-//                visibleState = bottomBarState,
-//                enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
-//                exit = fadeOut() + slideOutVertically(targetOffsetY = { it })
-//            ) {
-//                GlassNavigationBar(
-//                    selectedTab,
-//                    onSelect = {
-//                        selectedTab = it
-//                    })
-//            }
         },
         modifier = Modifier
             .navigationBarsPadding()
@@ -205,36 +189,6 @@ fun Application(){
                                     },
                                     userViewModel = userViewModel
                                 )
-                                // 帖子详情
-//                                    AnimatedVisibility(
-//                                        visible = selectedPost != null && showDetails,
-//                                        enter = slideInHorizontally(
-//                                            initialOffsetX = { it },
-//                                            animationSpec = tween(350, easing = FastOutSlowInEasing)
-//                                        ) + fadeIn(tween(350)),
-//                                        exit = slideOutHorizontally(
-//                                            targetOffsetX = { it },
-//                                            animationSpec = tween(350, easing = FastOutSlowInEasing)
-//                                        ) + fadeOut(tween(350))
-//                                    ) {
-//                                        selectedPost?.let { post ->
-//                                            PostDetailScreen(
-//                                                post = post,
-//                                                onBack = { showDetails = false },
-//                                                showCommentBar = showCommentBar,
-//                                                onSubmitComment = { postId, content ->
-//                                                    postsViewModel.createComment(
-//                                                        postId,
-//                                                        content,
-//                                                        userViewModel.currentUser.value,
-//                                                        onCommentCreated = { comment ->
-//                                                            selectedPost = post.copy(comments = post.comments + comment)
-//                                                        }
-//                                                    )
-//                                                }
-//                                            )
-//                                        }
-//                                    }
                             }
                         }
                         1 -> {
@@ -312,7 +266,10 @@ fun Application(){
                                         onLogout = {
                                             userViewModel.logoutUser()
                                         },
-                                        userViewModel = userViewModel
+                                        userViewModel = userViewModel,
+                                        onUserClick = {
+                                           showProfile =  true
+                                        }
                                     )
                             }
                         }
@@ -368,7 +325,20 @@ fun Application(){
             showCommentBar = true
         )
     }
-        }
+    AnimatedVisibility(
+        visible = showProfile,
+        enter = slideInHorizontally(
+            initialOffsetX = { it },
+            animationSpec = tween(350, easing = FastOutSlowInEasing)
+        ) + fadeIn(tween(350)),
+        exit = slideOutHorizontally(
+            targetOffsetX = { it },
+            animationSpec = tween(350, easing = FastOutSlowInEasing)
+        ) + fadeOut(tween(350))
+    ) {
+        PersonalProfileScreen()
+    }
+}
 
 
 
